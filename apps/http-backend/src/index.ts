@@ -1,21 +1,22 @@
 import express from "express" 
-import {UserSchema} from "./types"
 import jwt from "jsonwebtoken"
 import { JWT_SECERT }  from '@repo/backend-common/config';
 import {middleware} from "./middleware"
 import {CreateuserSchema , SiginSchema, CreateRoomSchema } from "@repo/common/types"
+import {prismaClient} from "@repo/db/client"
 const app = express();
 app.use(express.json()); 
 
 app.post("/signup" , (req,res) => {
       const data = CreateuserSchema.safeParse(req.body);
 
-      if(!data){
+      if(!data.success){
        res.json({
               message : "incorrect inputs"
        })
-       return
+       return 
       }
+
       res.json({
        userId: "123"
       })

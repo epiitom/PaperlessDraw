@@ -1,1 +1,0 @@
-export const JWT_SECERT = "12344"

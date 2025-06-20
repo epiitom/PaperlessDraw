@@ -1,6 +1,6 @@
 import {NextFunction, Request , Response} from "express";
 import   jwt from "jsonwebtoken"
-import {JWT_SECERT} from './config'
+import { JWT_SECERT } from "@repo/backend-common/config";
 export function middleware(req:Request , res:Response, next:NextFunction){
     const token = req.headers["authorization"] ?? "";
 

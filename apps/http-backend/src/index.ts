@@ -1,6 +1,6 @@
 import express from "express" 
 import jwt from "jsonwebtoken"
-import { JWT_SECERT }  from '@repo/backend-common/config';
+import { JWT_SECRET }  from '@repo/backend-common/config';
 import {middleware} from "./middleware"
 import {CreateuserSchema , SiginSchema, CreateRoomSchema } from "@repo/common/types"
 import {prismaClient} from "@repo/db/client"
@@ -17,7 +17,7 @@ app.post("/signup" , async(req,res) => {
        return 
       }
       try{
-     await prismaClient.users.create({
+    const user =  await prismaClient.users.create({
           data:{
               email: parsedData.data?.username,
               password: parsedData.data?.password,
@@ -25,7 +25,7 @@ app.post("/signup" , async(req,res) => {
           }   
       })
       res.json({
-       userId: "123"
+       userId: user.id
       })
   }catch(e){
        res.status(411).json({
@@ -39,7 +39,7 @@ app.post("/signin" , (req,res) => {
       const userId = 1;
       const token = jwt.sign({
         userId
-       } , JWT_SECERT);
+       } , JWT_SECRET);
        res.json({
         token
        })

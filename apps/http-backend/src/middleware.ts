@@ -8,7 +8,7 @@ export function middleware(req:Request , res:Response, next:NextFunction){
 
     if(decoded) {
           //@ts-ignore
-        res.userId = decoded.userId;
+        req.userId = decoded.userId;
         next()
     }
     else {

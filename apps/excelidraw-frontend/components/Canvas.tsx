@@ -1,5 +1,5 @@
 
-import {initDraw} from "@/draw"
+
 import {useState,useEffect,useRef} from "react"
 import {Circle, Pencil, RectangleHorizontalIcon} from "lucide-react"
 import {IconButton} from "./IconsButton"
@@ -47,8 +47,8 @@ export function Canvas ({
     )
 }
  function Topbar({selectedTool,setSelectedTool}:{
-    selectedTool:Shape,
-    setSelectedTool: (s:Shape) => void
+    selectedTool:Tool,
+    setSelectedTool: (s:Tool) => void
  }){
     return <div style ={{
         position:"fixed",

@@ -90,6 +90,14 @@ export class Game{
                 this.ctx.stroke();
                 this.ctx.closePath();                
             }
+             else if (shape.type === "pencil") {
+            this.ctx.strokeStyle = "rgba(255, 255, 255)";
+            this.ctx.beginPath();
+            this.ctx.moveTo(shape.startX, shape.startY);
+            this.ctx.lineTo(shape.endX, shape.endY);
+            this.ctx.lineWidth = 2;
+            this.ctx.stroke();
+        }
         })
     }
     
@@ -102,7 +110,9 @@ export class Game{
         this.clicked = false
         const width = e.clientX - this.startX;
         const height = e.clientY - this.startY;
-
+        const rect = this.canvas.getBoundingClientRect();
+         const endX = e.clientX - rect.left;
+       const endY = e.clientY - rect.top;
         const selectedTool = this.selectedTool;
         let shape: Shape | null = null;
         if (selectedTool === "rect") {
@@ -122,6 +132,15 @@ export class Game{
                 centerX: this.startX + radius,
                 centerY: this.startY + radius,
             }
+        }
+        else if(selectedTool === "pencil"){
+             shape = {
+            type: "pencil",
+            startX: this.startX,
+            startY: this.startY,
+            endX: endX,  // Use the converted coordinates
+            endY: endY
+        }  
         }
 
         if (!shape) {
@@ -156,6 +175,15 @@ export class Game{
                 this.ctx.arc(centerX, centerY, Math.abs(radius), 0, Math.PI * 2);
                 this.ctx.stroke();
                 this.ctx.closePath();                
+            }
+            else if (selectedTool === "pencil"){
+           const endX = e.clientX - this.canvas.getBoundingClientRect().left;
+          const endY = e.clientY - this.canvas.getBoundingClientRect().top;
+         this.ctx.beginPath();
+       this.ctx.moveTo(this.startX, this.startY);
+       this.ctx.lineTo(endX, endY);
+        this.ctx.lineWidth = 2;
+        this.ctx.stroke();
             }
         }
     }

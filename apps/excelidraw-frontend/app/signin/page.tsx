@@ -1,11 +1,10 @@
 
-  "use client"
+ "use client"
 import { useState } from 'react';
-import { User, Mail, Lock, AlertCircle, CheckCircle } from 'lucide-react';
+import { Mail, Lock, AlertCircle, CheckCircle, LogIn } from 'lucide-react';
 
-export default function SignupForm() {
+export default function SigninForm() {
   const [formData, setFormData] = useState({
-    name: '',
     username: '',
     password: ''
   });
@@ -30,7 +29,7 @@ export default function SignupForm() {
     setMessage({ type: '', text: '' });
 
     // Basic client-side validation
-    if (!formData.name.trim() || !formData.username.trim() || !formData.password.trim()) {
+    if (!formData.username.trim() || !formData.password.trim()) {
       setMessage({ type: 'error', text: 'All fields are required' });
       setLoading(false);
       return;
@@ -42,14 +41,10 @@ export default function SignupForm() {
       return;
     }
 
-    if (formData.password.length < 6) {
-      setMessage({ type: 'error', text: 'Password must be at least 6 characters long' });
-      setLoading(false);
-      return;
-    }
-
     try {
-      const response = await fetch('http://localhost:3002/signup', {
+      console.log('Sending data:', formData);
+      
+      const response = await fetch('http://localhost:3002/signin', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -60,21 +55,23 @@ export default function SignupForm() {
       const data = await response.json();
 
       if (response.ok) {
-        if ( data.token ||data.userId) {
-          setMessage({ type: 'success', text: 'Account created successfully!' });
-          setFormData({ name: '', username: '', password: '' });
+      if (data.token) {
+    setMessage({ type: 'success', text: 'Login successful! Redirecting...' });
+    // Store token for future requests
+    localStorage.setItem('token', data.token);
+        localStorage.setItem('userEmail', formData.username);
+    setTimeout(() => {
 
-
-           if (data.token) {
-      localStorage.setItem('token', data.token);
-       }
-      localStorage.setItem('userEmail', formData.username); // or whatever field you use
-         setTimeout(() => {
-      window.location.href = '/landing';
+        setMessage({ type: 'success', text: 'Welcome back!' });
+         window.location.href = '/landing';
     }, 1500);
-  }
-    
-        } else {
+   } else {
+          setMessage({ 
+            type: 'error', 
+            text: data.message || 'Login failed. Please try again.' 
+          });
+        }
+      } else {
         // Handle HTTP error status codes (4xx, 5xx)
         setMessage({ 
           type: 'error', 
@@ -82,6 +79,7 @@ export default function SignupForm() {
         });
       }
     } catch (error) {
+      console.log('Fetch error:', error);
       setMessage({ 
         type: 'error', 
         text: 'Network error. Please check your connection and try again.' 
@@ -92,40 +90,21 @@ export default function SignupForm() {
   };
 
   return (
+   <div   >
     <div className="min-h-screen bg-black flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-md ">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-            <User className="text-white" size={32} />
+          <div className="bg-gradient-to-r from-green-600 to-blue-600 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+            <LogIn className="text-white" size={32} />
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">Create Account</h1>
-          <p className="text-gray-400">Join us today and get started</p>
+          <h1 className="text-3xl font-bold text-white mb-2">Welcome Back</h1>
+          <p className="text-gray-400">Sign in to your account</p>
         </div>
 
         {/* Form Card */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
           <div className="space-y-6">
-            {/* Name Field */}
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-                Full Name
-              </label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-                <input
-                  type="text"
-                  id="name"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
-                  placeholder="Enter your full name"
-                  disabled={loading}
-                />
-              </div>
-            </div>
-
             {/* Email Field */}
             <div>
               <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
@@ -139,7 +118,7 @@ export default function SignupForm() {
                   name="username"
                   value={formData.username}
                   onChange={handleChange}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
                   placeholder="Enter your email address"
                   disabled={loading}
                 />
@@ -159,8 +138,8 @@ export default function SignupForm() {
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
-                  placeholder="Create a strong password"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
+                  placeholder="Enter your password"
                   disabled={loading}
                 />
               </div>
@@ -187,15 +166,15 @@ export default function SignupForm() {
               type="button"
               onClick={handleSubmit}
               disabled={loading}
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-4 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              className="w-full bg-gradient-to-r from-green-600 to-blue-600 text-white py-3 px-4 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             >
               {loading ? (
                 <div className="flex items-center justify-center space-x-2">
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  <span>Creating Account...</span>
+                  <span>Signing In...</span>
                 </div>
               ) : (
-                'Create Account'
+                'Sign In'
               )}
             </button>
           </div>
@@ -203,9 +182,9 @@ export default function SignupForm() {
           {/* Footer */}
           <div className="mt-6 text-center">
             <p className="text-gray-600 text-sm">
-              Already have an account?{' '}
-              <a href="/signin" className="text-blue-600 hover:text-blue-700 font-medium transition-colors">
-                Sign in here
+              Don't have an account?{' '}
+              <a href="/signup" className="text-green-600 hover:text-green-700 font-medium transition-colors">
+                Create one here
               </a>
             </p>
           </div>
@@ -214,10 +193,11 @@ export default function SignupForm() {
         {/* Additional Info */}
         <div className="text-center mt-6">
           <p className="text-xs text-gray-500">
-            By creating an account, you agree to our Terms of Service and Privacy Policy
+            Secure login protected by advanced encryption
           </p>
         </div>
       </div>
+    </div>
     </div>
   );
 }

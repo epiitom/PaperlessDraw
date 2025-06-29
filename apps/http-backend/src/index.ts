@@ -7,16 +7,22 @@ import {prismaClient} from "@repo/db/client"
 import cors from "cors"
 const app = express();
 app.use(express.json()); 
-app.use(cors())
+app.use(cors(  {origin: true, // Allow all origins in development
+  credentials: true}))
 app.post("/signup" , async(req,res) => {
+         console.log("Received body:", req.body);
+    console.log("Body keys:", Object.keys(req.body));
+    console.log("Body values:", Object.values(req.body));
+
       const parsedData = CreateuserSchema.safeParse(req.body);
-       
-      if(!parsedData.success){
-       res.json({
-              message : "incorrect inputs"
-       })
-       return 
-      }
+    if(!parsedData.success){
+    console.log("❌ VALIDATION ERRORS:", parsedData.error.issues);
+    res.json({
+        message: "incorrect inputs",
+        details: parsedData.error.issues
+    })
+    return
+}
       try{
     const user =  await prismaClient.users.create({
           data:{
@@ -145,4 +151,4 @@ app.get("/room/:slug", async(req,res) => {
        })
 })
 
-app.listen(3001)
+app.listen(3002)

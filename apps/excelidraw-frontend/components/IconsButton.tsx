@@ -9,11 +9,11 @@ export function IconButton({
 }) {
     return (
 <div className={`
-  m-2 cursor-pointer rounded-full border-2 p-3
+  m-1 cursor-pointer rounded-full border-2 p-1
   relative overflow-hidden group
   transition-all duration-300 ease-out
   ${activated 
-    ? "bg-gradient-to-br from-red-500 to-red-600 border-red-400 text-white shadow-lg shadow-red-500/50 scale-110" 
+    ? "bg-[#f97316]" 
     : "bg-gradient-to-br from-gray-900 to-black border-gray-600 text-gray-300 hover:border-gray-400"
   }
   hover:scale-105 hover:shadow-xl

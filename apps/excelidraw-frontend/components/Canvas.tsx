@@ -32,7 +32,7 @@ export function Canvas ({
         }
 
 
-    }, [canvasRef]);
+    }, [roomId]);
 
     return (
         <div style ={{

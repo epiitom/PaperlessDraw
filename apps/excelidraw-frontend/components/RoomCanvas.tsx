@@ -1,8 +1,9 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 "use client"
-import {initDraw} from "@/draw"
+
 import {Canvas} from "./Canvas"
 import {WS_URL} from "@/config"
-import {useState,useEffect , useRef} from "react";
+import {useState,useEffect} from "react";
 export function RoomCanvas({roomId}: {roomId:string}){
    
     const [socket,setSocket] = useState<WebSocket | null>(null)

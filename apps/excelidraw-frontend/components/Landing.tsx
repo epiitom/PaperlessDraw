@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 'use client'
 
 import React, { useState, useEffect } from 'react';
@@ -80,7 +81,7 @@ const FeatureCard = ({ icon: Icon, title, description }: FeatureCardProps) => {
   );
 };
 
-function App() {
+function Landing() {
 
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -324,12 +325,12 @@ function App() {
       </h2>
       <p className="mt-8 text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto leading-relaxed">
         Create, collaborate, and share beautiful diagrams and sketches with our intuitive drawing tool.
-        {login ? " Welcome back!" : " No sign-up required."}
+        {login ? " Welcome back!" : " sign-up required."}
       </p>
       <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
         {login ? (
           // Show when logged in - direct link to canvas
-          <Link href="http://localhost:3002/canvas/5">
+          <Link href="http://localhost:3000/Room">
             <Button
               variant="outline"
               size="lg"
@@ -479,4 +480,4 @@ function App() {
   );
 }
 
-export default App;
+export default Landing;

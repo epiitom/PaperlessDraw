@@ -79,19 +79,22 @@ wss.on('connection', function connection(ws, request) {
       console.log("message received")
       console.log(parsedData);
 
-      if (parsedData.type === "chat") {
-        const roomId = parsedData.roomId;
-        const message = parsedData.message;
+   if (parsedData.type === "chat") {
+    const roomIdString = parsedData.roomId;
+    const message = parsedData.message;
 
-        // Validate roomId
-        if (!roomId || isNaN(Number(roomId))) {
-          console.error("Invalid roomId:", roomId);
-          ws.send(JSON.stringify({
+    // Extract numeric part from "room2" -> 2
+    const roomIdMatch = roomIdString.match(/^room(\d+)$/);
+    if (!roomIdMatch) {
+        console.error("Invalid roomId format:", roomIdString);
+        ws.send(JSON.stringify({
             type: "error",
-            message: "Invalid room ID"
-          }));
-          return;
-        }
+            message: "Invalid room ID format. Expected format: room{number}"
+        }));
+        return;
+    }
+    
+      const roomId = parseInt(roomIdMatch[1]);
 
         try {
           // Check if room exists first
@@ -119,14 +122,14 @@ wss.on('connection', function connection(ws, request) {
 
           // Broadcast to users in the room
           users.forEach(user => {
-            if (user.rooms.includes(roomId)) {
-              user.ws.send(JSON.stringify({
+        if (user.rooms.includes(roomIdString)) {  // Check against string format
+            user.ws.send(JSON.stringify({
                 type: "chat",
                 message: message,
-                roomId,
+                roomId: roomIdString,  // Send back original format
                 userId
-              }))
-            }
+            }))
+        }
           });
 
         } catch (dbError) {

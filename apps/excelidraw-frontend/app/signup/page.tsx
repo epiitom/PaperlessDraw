@@ -1,7 +1,9 @@
-
-  "use client"
-import { useState } from 'react';
+/* eslint-disable @typescript-eslint/no-unused-vars */
+"use client"
+import { useState, useEffect } from 'react';
 import { User, Mail, Lock, AlertCircle, CheckCircle } from 'lucide-react';
+import { useAuth } from "@/context/AuthContext";
+
 
 export default function SignupForm() {
   const [formData, setFormData] = useState({
@@ -9,87 +11,47 @@ export default function SignupForm() {
     username: '',
     password: ''
   });
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState({ type: '', text: '' });
+  
+  const { signup, loading, error, clearError } = useAuth();
+  const [successMessage, setSuccessMessage] = useState('');
 
-  const handleChange = (e) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
-    // Clear message when user starts typing
-    if (message.text) {
-      setMessage({ type: '', text: '' });
+    // Clear messages when user starts typing
+    if (error) {
+      clearError();
+    }
+    if (successMessage) {
+      setSuccessMessage('');
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
-    setLoading(true);
-    setMessage({ type: '', text: '' });
-
-    // Basic client-side validation
-    if (!formData.name.trim() || !formData.username.trim() || !formData.password.trim()) {
-      setMessage({ type: 'error', text: 'All fields are required' });
-      setLoading(false);
-      return;
-    }
-
-    if (!formData.username.includes('@')) {
-      setMessage({ type: 'error', text: 'Please enter a valid email address' });
-      setLoading(false);
-      return;
-    }
-
-    if (formData.password.length < 6) {
-      setMessage({ type: 'error', text: 'Password must be at least 6 characters long' });
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const response = await fetch('http://localhost:3002/signup', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        if ( data.token ||data.userId) {
-          setMessage({ type: 'success', text: 'Account created successfully!' });
-          setFormData({ name: '', username: '', password: '' });
-
-
-           if (data.token) {
-      localStorage.setItem('token', data.token);
-       }
-      localStorage.setItem('userEmail', formData.username); // or whatever field you use
-         setTimeout(() => {
-      window.location.href = '/landing';
-    }, 1500);
-  }
     
-        } else {
-        // Handle HTTP error status codes (4xx, 5xx)
-        setMessage({ 
-          type: 'error', 
-          text: data.message || `Error: ${response.status} ${response.statusText}` 
-        });
-      }
-    } catch (error) {
-      setMessage({ 
-        type: 'error', 
-        text: 'Network error. Please check your connection and try again.' 
-      });
-    } finally {
-      setLoading(false);
+    const success = await signup(formData);
+    
+    if (success) {
+      setSuccessMessage('Account created successfully!');
+      setFormData({ name: '', username: '', password: '' });
+      
+      // Redirect after success
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 1500);
     }
   };
+
+  // Create message object for display (maintaining original structure)
+  const message = error 
+    ? { type: 'error', text: error }
+    : successMessage 
+    ? { type: 'success', text: successMessage }
+    : { type: '', text: '' };
 
   return (
     <div className="min-h-screen bg-black flex items-center justify-center p-4">

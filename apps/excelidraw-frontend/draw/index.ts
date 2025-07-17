@@ -16,7 +16,7 @@ type Shape ={
 
 export async function initDraw(canvas: HTMLCanvasElement, roomId: string,socket:WebSocket){
         const ctx = canvas.getContext("2d");
-      let existingShapes : Shape[] = await getExistingShapes(roomId);
+      const existingShapes : Shape[] = await getExistingShapes(roomId);
            if(!ctx){
             return
            }

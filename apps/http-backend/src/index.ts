@@ -4,6 +4,7 @@ import { JWT_SECRET }  from '@repo/backend-common/config';
 import {middleware} from "./middleware"
 import {CreateuserSchema , SiginSchema, CreateRoomSchema } from "@repo/common/types"
 import {prismaClient} from "@repo/db/client"
+import { Request, Response } from "express";
 import cors from "cors"
 const app = express();
 app.use(express.json()); 
@@ -125,32 +126,30 @@ app.post("/room" ,middleware ,async(req,res) => {
     
 })
 app.get("/chats/:roomId", async (req, res) => {
-    const roomId = req.params.roomId;
-    
-    // Handle both numeric and string roomIds
-    let whereClause: any;
-    if (isNaN(Number(roomId))) {
-        // If roomId is not a number, treat it as a string
-        whereClause = { roomId: roomId };
-    } else {
-        // If roomId is a number, convert it
-        whereClause = { roomId: Number(roomId) };
-    }
-    
     try {
+        const roomId = Number(req.params.roomId);
+        console.log(req.params.roomId);
         const messages = await prismaClient.chat.findMany({
-            where: whereClause,
+            where: {
+                roomId: roomId
+            },
             orderBy: {
                 id: "desc"
-            }
+            },
+            take: 1000
         });
-        
-        res.json({ messages });
-    } catch (error) {
-        console.error("Error fetching messages:", error);
-        res.status(500).json({ error: "Failed to fetch messages" });
+
+        res.json({
+            messages
+        })
+    } catch(e) {
+        console.log(e);
+        res.json({
+            messages: []
+        })
     }
-});
+    
+})
 app.get("/room/:slug", async(req,res) => {
        const slug = req.params.slug;
        const room = await prismaClient.room.findFirst({

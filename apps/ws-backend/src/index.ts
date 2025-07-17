@@ -58,13 +58,26 @@ wss.on('connection', function connection(ws, request) {
       if (typeof data !== "string") {
         parsedData = JSON.parse(data.toString());
       } else {
-        parsedData = JSON.parse(data); // {type: "join-room", roomId: 1}
+        parsedData = JSON.parse(data);
       }
 
       if (parsedData.type === "join_room") {
+        const roomIdString = parsedData.roomId;
+        
+        // Handle "new" room case
+        if (roomIdString === "new") {
+          console.log("User attempting to join 'new' room - this should be handled by frontend");
+          ws.send(JSON.stringify({
+            type: "error",
+            message: "Cannot join 'new' room. Please create a room first."
+          }));
+          return;
+        }
+        
         const user = users.find(x => x.ws === ws);
-        if (user && !user.rooms.includes(parsedData.roomId)) {
-          user.rooms.push(parsedData.roomId);
+        if (user && !user.rooms.includes(roomIdString)) {
+          user.rooms.push(roomIdString);
+          console.log(`User ${userId} joined room ${roomIdString}`);
         }
       }
 
@@ -73,28 +86,53 @@ wss.on('connection', function connection(ws, request) {
         if (!user) {
           return;
         }
-        user.rooms = user?.rooms.filter(x => x !== parsedData.roomId); // Fixed: was parsedData.room
+        user.rooms = user?.rooms.filter(x => x !== parsedData.roomId);
       }
 
       console.log("message received")
       console.log(parsedData);
 
-   if (parsedData.type === "chat") {
-    const roomIdString = parsedData.roomId;
-    const message = parsedData.message;
+      if (parsedData.type === "chat") {
+        const roomIdString = parsedData.roomId;
+        const message = parsedData.message;
 
-    // Extract numeric part from "room2" -> 2
-    const roomIdMatch = roomIdString.match(/^room(\d+)$/);
-    if (!roomIdMatch) {
-        console.error("Invalid roomId format:", roomIdString);
-        ws.send(JSON.stringify({
+        // Handle "new" room case
+        if (roomIdString === "new") {
+          console.log("Cannot send chat to 'new' room");
+          ws.send(JSON.stringify({
             type: "error",
-            message: "Invalid room ID format. Expected format: room{number}"
-        }));
-        return;
-    }
-    
-      const roomId = parseInt(roomIdMatch[1]);
+            message: "Cannot send messages to 'new' room. Please create a room first."
+          }));
+          return;
+        }
+
+        // Extract numeric part from "room2" -> 2 OR handle direct numeric roomId
+        let roomId: number;
+        
+        if (roomIdString.startsWith('room')) {
+          // Format: "room2"
+          const roomIdMatch = roomIdString.match(/^room(\d+)$/);
+          if (!roomIdMatch) {
+            console.error("Invalid roomId format:", roomIdString);
+            ws.send(JSON.stringify({
+              type: "error",
+              message: "Invalid room ID format. Expected format: room{number}"
+            }));
+            return;
+          }
+          roomId = parseInt(roomIdMatch[1]);
+        } else {
+          // Direct numeric format: "123"
+          roomId = parseInt(roomIdString);
+          if (isNaN(roomId)) {
+            console.error("Invalid roomId format:", roomIdString);
+            ws.send(JSON.stringify({
+              type: "error",
+              message: "Invalid room ID format. Expected a number or room{number}"
+            }));
+            return;
+          }
+        }
 
         try {
           // Check if room exists first
@@ -111,7 +149,7 @@ wss.on('connection', function connection(ws, request) {
             return;
           }
 
-          // Create the chat message - this should work now since room exists
+          // Create the chat message
           await prismaClient.chat.create({
             data: {
               roomId: Number(roomId),
@@ -122,14 +160,14 @@ wss.on('connection', function connection(ws, request) {
 
           // Broadcast to users in the room
           users.forEach(user => {
-        if (user.rooms.includes(roomIdString)) {  // Check against string format
-            user.ws.send(JSON.stringify({
+            if (user.rooms.includes(roomIdString)) {
+              user.ws.send(JSON.stringify({
                 type: "chat",
                 message: message,
-                roomId: roomIdString,  // Send back original format
+                roomId: roomIdString,
                 userId
-            }))
-        }
+              }))
+            }
           });
 
         } catch (dbError) {

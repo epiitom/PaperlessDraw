@@ -33,14 +33,23 @@ export default function RoomEntryPage() {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`
         },
-        body: JSON.stringify({ name: roomName.trim() })
+        body: JSON.stringify({ 
+          name: roomName.trim() // This matches your backend CreateRoomSchema
+        })
       });
       
       const data = await res.json();
       
       if (res.ok) {
         console.log("Room created successfully:", data);
-        router.push(`/canvas/${data.slug}`);
+        // Backend returns: { roomId: number, slug: string }
+        // Route to the room using the numeric roomId, not the slug
+        if (data.roomId) {
+          router.push(`/canvas/${data.roomId}`);
+        } else {
+          // Fallback to slug if roomId is not available
+          router.push(`/canvas/${data.slug}`);
+        }
       } else {
         console.error("Failed to create room:", data);
         
@@ -77,6 +86,7 @@ export default function RoomEntryPage() {
     setIsJoining(true);
     
     try {
+      // Use the slug to find the room
       const res = await fetch(`${API_BASE}/room/${roomName.trim()}`, {
         headers: {
           "Authorization": `Bearer ${token}`
@@ -87,7 +97,14 @@ export default function RoomEntryPage() {
       
       if (res.ok && data.room) {
         console.log("Room found:", data.room);
-        router.push(`/canvas/${data.room.slug}`);
+        // Backend returns: { room: { id: number, slug: string, adminId: string } }
+        // Route to the room using the numeric id, not the slug
+        if (data.room.id) {
+          router.push(`/canvas/${data.room.id}`);
+        } else {
+          // Fallback to slug if id is not available
+          router.push(`/canvas/${data.room.slug}`);
+        }
       } else {
         console.error("Room not found:", data);
         
@@ -143,6 +160,11 @@ export default function RoomEntryPage() {
                 placeholder="e.g. design-team, art-project"
                 className="w-full p-4 bg-slate-700/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
                 disabled={isCreating || isJoining}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && roomName.trim()) {
+                    createRoom();
+                  }
+                }}
               />
               <div className="absolute inset-y-0 right-4 flex items-center">
                 <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>

@@ -1,0 +1,12 @@
+[build]
+  command = "pnpm install && pnpm run build --filter=excelidraw-frontend"
+  publish = "apps/excelidraw-frontend/out"
+
+[build.environment]
+  NODE_VERSION = "18"
+
+# Optional: Redirect rules for SPA
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

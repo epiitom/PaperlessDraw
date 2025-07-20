@@ -150,7 +150,7 @@ wss.on('connection', function connection(ws, request) {
           }
 
           // Create the chat message
-          await prismaClient.chat.create({
+        const createdMessage =  await prismaClient.chat.create({
             data: {
               roomId: Number(roomId),
               message,
@@ -162,10 +162,11 @@ wss.on('connection', function connection(ws, request) {
           users.forEach(user => {
             if (user.rooms.includes(roomIdString)) {
               user.ws.send(JSON.stringify({
-                type: "chat",
+                type: "chats",
                 message: message,
                 roomId: roomIdString,
-                userId
+                userId,
+                   messageId: createdMessage.id
               }))
             }
           });
@@ -178,6 +179,78 @@ wss.on('connection', function connection(ws, request) {
           }));
         }
       }
+      if (parsedData.type === "deleteShape") {
+        let messageId = parsedData.messageId;
+        let roomIdString = parsedData.roomId;
+        console.log("[deleteShape] Incoming:", { messageId, roomIdString, type_messageId: typeof messageId });
+
+        // Normalize messageId to number
+        messageId = Number(messageId);
+        if (isNaN(messageId)) {
+          console.error("[deleteShape] Invalid messageId:", parsedData.messageId);
+          ws.send(JSON.stringify({
+            type: "error",
+            message: "Invalid messageId for deletion"
+          }));
+          return;
+        }
+
+        // Normalize roomIdString (use same logic as chat handler)
+        let roomId;
+        if (roomIdString.startsWith('room')) {
+          const roomIdMatch = roomIdString.match(/^room(\d+)$/);
+          if (!roomIdMatch) {
+            console.error("[deleteShape] Invalid roomId format:", roomIdString);
+            ws.send(JSON.stringify({
+              type: "error",
+              message: "Invalid room ID format. Expected format: room{number}"
+            }));
+            return;
+          }
+          roomId = parseInt(roomIdMatch[1]);
+        } else {
+          roomId = parseInt(roomIdString);
+          if (isNaN(roomId)) {
+            console.error("[deleteShape] Invalid roomId format:", roomIdString);
+            ws.send(JSON.stringify({
+              type: "error",
+              message: "Invalid room ID format. Expected a number or room{number}"
+            }));
+            return;
+          }
+        }
+        // For broadcast, use the original roomIdString
+        try {
+          // Delete from DB
+          await prismaClient.chat.delete({
+            where: { id: messageId }
+          });
+
+          // Debug: print all user rooms
+          users.forEach(user => {
+            console.log(`[deleteShape] User ${user.userId} rooms:`, user.rooms);
+          });
+
+          // Broadcast deletion to the room
+          users.forEach(user => {
+            if (user.rooms.includes(roomIdString)) {
+              user.ws.send(JSON.stringify({
+                type: "shapeDeleted",
+                messageId: messageId,
+                roomId: roomIdString
+              }));
+            }
+          });
+        } catch (e) {
+          console.error("[deleteShape] Delete failed:", e);
+          ws.send(JSON.stringify({
+            type: "error",
+            message: "Failed to delete shape"
+          }));
+        }
+      }
+
+      
 
     } catch (error) {
       console.error("Error processing message:", error);
@@ -186,7 +259,11 @@ wss.on('connection', function connection(ws, request) {
         message: "Invalid message format"
       }));
     }
+    
+    
   });
+  
+  
 
   // Handle client disconnect
   ws.on('close', () => {

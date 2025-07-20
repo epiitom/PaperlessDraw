@@ -1,8 +1,14 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Tool } from "@/components/Canvas";
 import { getExistingShapes } from "./http";
-
-type Shape = {
+import axios from "axios";
+import { HTTP_BACKEND } from "@/config";
+ export type ShapeWithId = {
+    id: string | number;
+    shape: Shape;
+}
+ export type Shape = {
     type: "rect";
     x: number;
     y: number;
@@ -33,7 +39,7 @@ type Shape = {
 export class Game {
     private canvas: HTMLCanvasElement;
     private ctx: CanvasRenderingContext2D;
-    private existingShapes: Shape[] = [];
+    private existingShapes: ShapeWithId[] = [];
     private roomId: string;
     private isDrawing: boolean = false;
     private startX = 0;
@@ -43,6 +49,12 @@ export class Game {
     private lastX = 0;
     private lastY = 0;
     socket: WebSocket;
+    private multiSelectRect: { x: number; y: number; width: number; height: number } | null = null;
+    private selectedShapeIds: Set<string | number> = new Set();
+    private isDraggingSelection: boolean = false;
+    private isMovingSelection: boolean = false;
+    private dragOffset: { x: number; y: number } | null = null;
+    private lastDragPos: { x: number; y: number } | null = null;
 
     constructor(canvas: HTMLCanvasElement, roomId: string, socket: WebSocket) {
         this.canvas = canvas;
@@ -78,6 +90,9 @@ export class Game {
             case "eraser":
                 this.canvas.style.cursor = "grab";
                 break;
+            case "multi-select":
+                this.canvas.style.cursor = "crosshair";
+                break;
             default:
                 this.canvas.style.cursor = "crosshair";
         }
@@ -86,7 +101,7 @@ export class Game {
     async init() {
         try {
             const shapes = await getExistingShapes(this.roomId);
-            this.existingShapes = this.validateAndNormalizeShapes(shapes);
+            this.existingShapes = shapes; // shapes are now always { id, shape }
             console.log("Loaded shapes:", this.existingShapes);
             this.clearCanvas();
         } catch (error) {
@@ -195,22 +210,22 @@ export class Game {
                     try {
                         const parsedShape = JSON.parse(message.message);
                         if (parsedShape && parsedShape.shape) {
-                            const validatedShape = this.validateShape(parsedShape.shape);
-                            if (validatedShape) {
-                                this.existingShapes.push(validatedShape);
-                                this.clearCanvas();
+                            // Add with id if present
+                            if (message.messageId) {
+                                this.existingShapes.push({ id: message.messageId, shape: parsedShape.shape });
+                            } else {
+                                // fallback for legacy
+                                this.existingShapes.push({ id: Date.now(), shape: parsedShape.shape });
                             }
+                            this.clearCanvas();
                         }
                     } catch (parseError) {
                         console.error("Error parsing shape message:", parseError);
                     }
-                } else if (message.type == "erase") {
-                    if (typeof message.x === 'number' && typeof message.y === 'number') {
-                        this.existingShapes = this.existingShapes.filter(shape => {
-                            return !this.isPointInShape(message.x, message.y, shape);
-                        });
-                        this.clearCanvas();
-                    }
+                } else if (message.type == "shapeDeleted") {
+                    // Remove by id
+                    this.existingShapes = this.existingShapes.filter(item => item.id !== message.messageId);
+                    this.clearCanvas();
                 }
             } catch (error) {
                 console.error("Error handling WebSocket message:", error);
@@ -232,45 +247,53 @@ export class Game {
 
             this.existingShapes.forEach((shape, index) => {
                 try {
-                    if (!shape || !shape.type) {
+                    if (!shape || !shape.shape || !shape.shape.type) {
                         console.warn(`Invalid shape at index ${index}:`, shape);
                         return;
                     }
+                    // Highlight if selected
+                    if (this.selectedShapeIds.has(shape.id)) {
+                        this.ctx.save();
+                        this.ctx.strokeStyle = "#00bfff";
+                        this.ctx.lineWidth = 4;
+                        this.ctx.shadowColor = "#00bfff";
+                        this.ctx.shadowBlur = 8;
+                    } else {
+                        this.ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
+                        this.ctx.lineWidth = 2;
+                        this.ctx.shadowBlur = 0;
+                    }
                     
-                    this.ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
-                    this.ctx.lineWidth = 2;
-                    
-                    switch (shape.type) {
+                    switch (shape.shape.type) {
                         case "rect":
-                            this.ctx.strokeRect(shape.x, shape.y, shape.width, shape.height);
+                            this.ctx.strokeRect(shape.shape.x, shape.shape.y, shape.shape.width, shape.shape.height);
                             break;
-                            
                         case "circle":
                             this.ctx.beginPath();
-                            this.ctx.arc(shape.centerX, shape.centerY, Math.abs(shape.radius), 0, Math.PI * 2);
+                            this.ctx.arc(shape.shape.centerX, shape.shape.centerY, Math.abs(shape.shape.radius), 0, Math.PI * 2);
                             this.ctx.stroke();
                             this.ctx.closePath();
                             break;
-                            
                         case "line":
                             this.ctx.save();
                             this.ctx.beginPath();
                             this.ctx.lineWidth = 4;
                             this.ctx.lineCap = "round";
-                            this.ctx.moveTo(shape.startX, shape.startY);
-                            this.ctx.lineTo(shape.endX, shape.endY);
+                            this.ctx.moveTo(shape.shape.startX, shape.shape.startY);
+                            this.ctx.lineTo(shape.shape.endX, shape.shape.endY);
                             this.ctx.stroke();
                             this.ctx.restore();
                             break;
-                            
                         case "pencil":
-                            if (shape.points && Array.isArray(shape.points) && shape.points.length > 1) {
-                                this.drawSmoothPencilStroke(shape.points);
+                            if (shape.shape.points && Array.isArray(shape.shape.points) && shape.shape.points.length > 1) {
+                                this.drawSmoothPencilStroke(shape.shape.points);
                             }
                             break;
-                            
                         default:
-                            console.warn(`Unknown shape type: ${shape.type}`);
+                            console.warn(`Unknown shape type: ${shape.shape.type}`);
+                    }
+                    if (this.selectedShapeIds.has(shape.id)) {
+                        this.ctx.restore();
                     }
                 } catch (drawError) {
                     console.error(`Error drawing shape at index ${index}:`, drawError, shape);
@@ -336,11 +359,33 @@ export class Game {
             this.startY = pos.y;
             this.lastX = pos.x;
             this.lastY = pos.y;
-            
+
             if (this.selectedTool === "eraser") {
                 this.eraseShapeAt(pos.x, pos.y);
             } else if (this.selectedTool === "pencil") {
                 this.currentPencilPoints = [{ x: pos.x, y: pos.y }];
+            } else if (this.selectedTool === "multi-select") {
+                // If any selected shape is under the mouse, start moving
+                let clickedSelectedShape = false;
+                for (const item of this.existingShapes) {
+                    if (this.selectedShapeIds.has(item.id) && this.isPointInShape(pos.x, pos.y, item.shape)) {
+                        clickedSelectedShape = true;
+                        break;
+                    }
+                }
+                if (clickedSelectedShape && this.selectedShapeIds.size > 0) {
+                    this.isMovingSelection = true;
+                    this.isDraggingSelection = false;
+                    this.dragOffset = { x: pos.x, y: pos.y };
+                    this.lastDragPos = { x: pos.x, y: pos.y };
+                } else {
+                    // Start new selection
+                    this.isDraggingSelection = true;
+                    this.isMovingSelection = false;
+                    this.multiSelectRect = { x: pos.x, y: pos.y, width: 0, height: 0 };
+                    this.selectedShapeIds.clear();
+                    this.clearCanvas();
+                }
             }
         } catch (error) {
             console.error("Error in mouseDownHandler:", error);
@@ -350,44 +395,67 @@ export class Game {
     mouseUpHandler = (e: MouseEvent) => {
         try {
             if (!this.isDrawing) return;
-            
-            const pos = this.getMousePos(e);
             this.isDrawing = false;
+            const pos = this.getMousePos(e);
+            if (this.selectedTool === "multi-select") {
+                if (this.isDraggingSelection) {
+                    // Finalize selection
+                    this.clearCanvas();
+                    this.multiSelectRect = this.multiSelectRect; // keep for moving
+                    this.isDraggingSelection = false;
+                } else if (this.isMovingSelection) {
+                    // Finalize move
+                    this.clearCanvas();
+                    this.isMovingSelection = false;
+                    this.dragOffset = null;
+                    this.lastDragPos = null;
+                }
+                return;
+            }
             
             const width = pos.x - this.startX;
             const height = pos.y - this.startY;
             
-            let shape: Shape | null = null;
+            let shape: ShapeWithId | null = null;
             
             switch (this.selectedTool) {
                 case "rect":
                     shape = {
-                        type: "rect",
-                        x: this.startX,
-                        y: this.startY,
-                        width: width,
-                        height: height
+                        id: Date.now(), // Assign a new ID
+                        shape: {
+                            type: "rect",
+                            x: this.startX,
+                            y: this.startY,
+                            width: width,
+                            height: height
+                        }
                     };
                     break;
                     
                 case "circle":
                     const radius = Math.max(Math.abs(width), Math.abs(height)) / 2;
                     shape = {
-                        type: "circle",
-                        centerX: this.startX + width / 2,
-                        centerY: this.startY + height / 2,
-                        radius: radius
+                        id: Date.now(), // Assign a new ID
+                        shape: {
+                            type: "circle",
+                            centerX: this.startX + width / 2,
+                            centerY: this.startY + height / 2,
+                            radius: radius
+                        }
                     };
                     break;
                     
                 case "line":
                     if (this.startX !== pos.x || this.startY !== pos.y) {
                         shape = {
-                            type: "line",
-                            startX: this.startX,
-                            startY: this.startY,
-                            endX: pos.x,
-                            endY: pos.y
+                            id: Date.now(), // Assign a new ID
+                            shape: {
+                                type: "line",
+                                startX: this.startX,
+                                startY: this.startY,
+                                endX: pos.x,
+                                endY: pos.y
+                            }
                         };
                         console.log("Line shape created:", shape);
                     } else {
@@ -398,8 +466,11 @@ export class Game {
                 case "pencil":
                     if (this.currentPencilPoints.length > 1) {
                         shape = {
-                            type: "pencil",
-                            points: [...this.currentPencilPoints]
+                            id: Date.now(), // Assign a new ID
+                            shape: {
+                                type: "pencil",
+                                points: [...this.currentPencilPoints]
+                            }
                         };
                     }
                     this.currentPencilPoints = [];
@@ -411,7 +482,7 @@ export class Game {
                 this.clearCanvas();
                 this.socket.send(JSON.stringify({
                     type: "chat",
-                    message: JSON.stringify({ shape }),
+                    message: JSON.stringify({ shape: shape.shape }),
                     roomId: this.roomId
                 }));
             }
@@ -423,14 +494,12 @@ export class Game {
     mouseMoveHandler = (e: MouseEvent) => {
         try {
             if (!this.isDrawing) return;
-            
             const pos = this.getMousePos(e);
-            
+
             if (this.selectedTool === "eraser") {
                 this.eraseShapeAt(pos.x, pos.y);
                 return;
             }
-            
             if (this.selectedTool === "pencil") {
                 // Add point only if it's far enough from the last point for smoother drawing
                 const distance = Math.sqrt(
@@ -450,6 +519,47 @@ export class Game {
                         this.drawSmoothPencilStroke(this.currentPencilPoints);
                     }
                 }
+                return;
+            }
+            // Multi-select dragging selection rectangle
+            if (this.selectedTool === "multi-select" && this.isDraggingSelection && this.multiSelectRect) {
+                this.multiSelectRect.width = pos.x - this.startX;
+                this.multiSelectRect.height = pos.y - this.startY;
+                this.clearCanvas();
+                // Draw selection rectangle
+                this.ctx.save();
+                this.ctx.strokeStyle = "#00bfff";
+                this.ctx.setLineDash([6]);
+                this.ctx.lineWidth = 2;
+                this.ctx.strokeRect(this.multiSelectRect.x, this.multiSelectRect.y, this.multiSelectRect.width, this.multiSelectRect.height);
+                this.ctx.restore();
+                // Highlight shapes inside selection
+                this.selectedShapeIds.clear();
+                const rect = this.getNormalizedRect(this.multiSelectRect);
+                for (const item of this.existingShapes) {
+                    if (this.isShapeInRect(item.shape, rect)) {
+                        this.selectedShapeIds.add(item.id);
+                    }
+                }
+                return;
+            }
+            // Multi-select moving selected shapes
+            if (this.selectedTool === "multi-select" && this.isMovingSelection && this.dragOffset && this.lastDragPos) {
+                const dx = pos.x - this.lastDragPos.x;
+                const dy = pos.y - this.lastDragPos.y;
+                // Move all selected shapes
+                for (const item of this.existingShapes) {
+                    if (this.selectedShapeIds.has(item.id)) {
+                        this.moveShape(item.shape, dx, dy);
+                    }
+                }
+                // Move the selection rectangle as well
+                if (this.multiSelectRect) {
+                    this.multiSelectRect.x += dx;
+                    this.multiSelectRect.y += dy;
+                }
+                this.lastDragPos = { x: pos.x, y: pos.y };
+                this.clearCanvas();
                 return;
             }
             
@@ -499,28 +609,28 @@ export class Game {
             this.mouseUpHandler(e);
         }
     }
-
-    private eraseShapeAt(x: number, y: number) {
-        try {
-            const initialCount = this.existingShapes.length;
-            
-            this.existingShapes = this.existingShapes.filter(shape => {
-                return !this.isPointInShape(x, y, shape);
-            });
-            
-            if (this.existingShapes.length < initialCount) {
-                this.clearCanvas();
-                this.socket.send(JSON.stringify({
-                    type: "erase",
-                    x: x,
-                    y: y,
-                    roomId: this.roomId
-                }));
+private eraseShapeAt(x: number, y: number) {
+    try {
+        for (const item of this.existingShapes) {
+            const shape = item.shape;
+            if (this.isPointInShape(x, y, shape as Shape)) {
+                if (item.id) {
+                    console.log("Sending deleteShape for id", item.id);
+                    this.socket.send(JSON.stringify({
+                        type: "deleteShape",
+                        messageId: Number(item.id),
+                        roomId: this.roomId
+                    }));
+                }
+                // Do not remove locally yet! Wait for 'shapeDeleted' event
+                break; // Only delete one shape at that point
             }
-        } catch (error) {
-            console.error("Error in eraseShapeAt:", error);
         }
+    } catch (error) {
+        console.error("Error in eraseShapeAt:", error);
     }
+}
+
 
     private isPointInShape(x: number, y: number, shape: Shape): boolean {
         try {
@@ -586,5 +696,83 @@ export class Game {
         this.canvas.addEventListener("mousemove", this.mouseMoveHandler);
         this.canvas.addEventListener("mouseleave", this.mouseLeaveHandler);
         this.canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+    }
+
+    private getNormalizedRect(rect: { x: number; y: number; width: number; height: number }) {
+        const x = rect.width < 0 ? rect.x + rect.width : rect.x;
+        const y = rect.height < 0 ? rect.y + rect.height : rect.y;
+        const width = Math.abs(rect.width);
+        const height = Math.abs(rect.height);
+        return { x, y, width, height };
+    }
+
+    private isShapeInRect(shape: Shape, rect: { x: number; y: number; width: number; height: number }): boolean {
+        switch (shape.type) {
+            case "rect":
+                return (
+                    shape.x >= rect.x &&
+                    shape.x + shape.width <= rect.x + rect.width &&
+                    shape.y >= rect.y &&
+                    shape.y + shape.height <= rect.y + rect.height
+                );
+            case "circle":
+                return (
+                    shape.centerX - shape.radius >= rect.x &&
+                    shape.centerX + shape.radius <= rect.x + rect.width &&
+                    shape.centerY - shape.radius >= rect.y &&
+                    shape.centerY + shape.radius <= rect.y + rect.height
+                );
+            case "line":
+                return (
+                    shape.startX >= rect.x && shape.startX <= rect.x + rect.width &&
+                    shape.startY >= rect.y && shape.startY <= rect.y + rect.height &&
+                    shape.endX >= rect.x && shape.endX <= rect.x + rect.width &&
+                    shape.endY >= rect.y && shape.endY <= rect.y + rect.height
+                );
+            case "pencil":
+                if (!shape.points || !Array.isArray(shape.points)) return false;
+                return shape.points.every(point =>
+                    point.x >= rect.x && point.x <= rect.x + rect.width &&
+                    point.y >= rect.y && point.y <= rect.y + rect.height
+                );
+            default:
+                return false;
+        }
+    }
+
+    private isPointInRect(pos: { x: number; y: number }, rect: { x: number; y: number; width: number; height: number }) {
+        return (
+            pos.x >= rect.x &&
+            pos.x <= rect.x + rect.width &&
+            pos.y >= rect.y &&
+            pos.y <= rect.y + rect.height
+        );
+    }
+
+    private moveShape(shape: Shape, dx: number, dy: number) {
+        switch (shape.type) {
+            case "rect":
+                shape.x += dx;
+                shape.y += dy;
+                break;
+            case "circle":
+                shape.centerX += dx;
+                shape.centerY += dy;
+                break;
+            case "line":
+                shape.startX += dx;
+                shape.startY += dy;
+                shape.endX += dx;
+                shape.endY += dy;
+                break;
+            case "pencil":
+                if (shape.points && Array.isArray(shape.points)) {
+                    for (const pt of shape.points) {
+                        pt.x += dx;
+                        pt.y += dy;
+                    }
+                }
+                break;
+        }
     }
 }

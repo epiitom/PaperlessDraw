@@ -1,9 +1,9 @@
 import {useState,useEffect,useRef} from "react"
-import {Circle, RectangleHorizontalIcon,Eraser,ArrowRight,Pencil} from "lucide-react"
+import {Circle, RectangleHorizontalIcon,Eraser,ArrowRight,Pencil, MousePointer} from "lucide-react"
 import {IconButton} from "./IconsButton"
 import { Game } from "@/draw/Game";
 
-export type Tool = "circle"|"rect"|"pencil"| "eraser"|"line";
+export type Tool = "circle"|"rect"|"pencil"| "eraser"|"line"|"multi-select";
 
 export function Canvas ({
     roomId,
@@ -87,6 +87,9 @@ function Topbar({selectedTool,setSelectedTool}:{
             <IconButton onClick={() => {
                 setSelectedTool("eraser")
             }} activated={selectedTool === "eraser"} icon={<Eraser/>}/>
+            <IconButton onClick={() => setSelectedTool('multi-select')}
+                activated={selectedTool === 'multi-select'}
+                icon={<MousePointer color={selectedTool === 'multi-select' ? '#f97316' : undefined}/>} />
         </div>
     </div>
 }

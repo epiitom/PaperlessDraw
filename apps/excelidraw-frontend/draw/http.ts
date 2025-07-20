@@ -27,10 +27,11 @@ export async function getExistingShapes(roomId: string): Promise<any[]> {
             return [];
         }
 
-        const shapes = messages.map((x: { message: string }) => {
+        // Always return { id, shape }
+        const shapes = messages.map((x: { id: number; message: string }) => {
             try {
                 const messageData = JSON.parse(x.message);
-                return messageData.shape;
+                return { id: x.id, shape: messageData.shape };
             } catch (error) {
                 console.error('Error parsing message:', x.message, error);
                 return null;

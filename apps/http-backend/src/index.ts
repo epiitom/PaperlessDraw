@@ -10,6 +10,12 @@ const app = express();
 app.use(express.json()); 
 app.use(cors(  {origin: true, // Allow all origins in development
   credentials: true}))
+
+  
+interface DeleteByPointBody {
+  x: number;
+  y: number;
+}
 app.post("/signup" , async(req,res) => {
          console.log("Received body:", req.body);
     console.log("Body keys:", Object.keys(req.body));
@@ -162,5 +168,19 @@ app.get("/room/:slug", async(req,res) => {
            room
        })
 })
+
+// Minimal DELETE endpoint for deleting a chat message (shape) by id
+app.delete("/chats/:messageId", async (req, res) => {
+    try {
+        const messageId = Number(req.params.messageId);
+        await prismaClient.chat.delete({
+            where: { id: messageId }
+        });
+        res.json({ success: true });
+    } catch (e) {
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        res.status(500).json({ success: false, error: errorMessage });
+    }
+});
 
 app.listen(3002)

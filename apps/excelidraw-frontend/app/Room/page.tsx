@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Palette, Users, Plus, ArrowRight } from "lucide-react";
+import { HTTP_BACKEND } from "@/config";
 
 export default function RoomEntryPage() {
   const [roomName, setRoomName] = useState("");
@@ -10,7 +11,7 @@ export default function RoomEntryPage() {
   const [isJoining, setIsJoining] = useState(false);
   const router = useRouter();
   const { token } = useAuth();
-  const API_BASE = "http://localhost:3002";
+  const API_BASE = HTTP_BACKEND;
 
   const createRoom = async () => {
     if (!token) {

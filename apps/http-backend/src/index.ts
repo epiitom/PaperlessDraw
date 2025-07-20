@@ -183,4 +183,7 @@ app.delete("/chats/:messageId", async (req, res) => {
     }
 });
 
-app.listen(3002)
+const PORT = process.env.PORT || 3002;
+app.listen(PORT, () => {
+  console.log(`HTTP backend listening on port ${PORT}`);
+});

@@ -2,6 +2,7 @@
 // contexts/AuthContext.tsx
 "use client"
 import { createContext, useContext, useEffect, useReducer, ReactNode } from 'react';
+import { HTTP_BACKEND } from "@/config";
 
 // Types
 interface User {
@@ -125,7 +126,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       // API call
-      const response = await fetch('http://localhost:3002/signup', {
+      const response = await fetch(`${HTTP_BACKEND}/signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -176,7 +177,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     dispatch({ type: 'AUTH_START' });
 
     try {
-      const response = await fetch('http://localhost:3002/signin', {
+      const response = await fetch(`${HTTP_BACKEND}/signin`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

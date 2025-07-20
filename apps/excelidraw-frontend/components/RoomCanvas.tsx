@@ -2,7 +2,7 @@
 "use client"
 
 import {Canvas} from "./Canvas"
-import {WS_URL} from "@/config"
+import { WS_URL } from "@/config";
 import {useState,useEffect} from "react";
 export function RoomCanvas({roomId}: {roomId:string}){
    

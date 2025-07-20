@@ -330,7 +330,7 @@ function Landing() {
       <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
         {login ? (
           // Show when logged in - direct link to canvas
-          <Link href="http://localhost:3000/Room">
+          <Link href="/Room">
             <Button
               variant="outline"
               size="lg"

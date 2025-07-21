@@ -1,9 +1,10 @@
 [build]
-  command = "pnpm install --frozen-lockfile && pnpm turbo run build --filter=excelidraw-frontend"
-  publish = "apps/excelidraw-frontend/.next"
-
-[build.environment]
-  NODE_VERSION = "18"
+  command = "npm run build"
+  publish = ".next"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
+
+[build.environment]
+  NODE_VERSION = "18"
+  NPM_VERSION = "8"

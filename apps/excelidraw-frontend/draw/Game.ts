@@ -206,7 +206,7 @@ export class Game {
             try {
                 const message = JSON.parse(event.data);
 
-                if (message.type == "chat") {
+                if (message.type == "chat" || message.type == "chats") {
                     try {
                         const parsedShape = JSON.parse(message.message);
                         if (parsedShape && parsedShape.shape) {

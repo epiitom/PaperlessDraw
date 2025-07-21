@@ -4,32 +4,29 @@
 import {Canvas} from "./Canvas"
 import { WS_URL } from "@/config";
 import {useState,useEffect} from "react";
+import { useAuth } from "@/context/AuthContext"; // or get from localStorage
+
 export function RoomCanvas({roomId}: {roomId:string}){
-   
+    const { token } = useAuth(); // or: const token = localStorage.getItem('token');
     const [socket,setSocket] = useState<WebSocket | null>(null)
 
     useEffect(() => {
-      const ws = new WebSocket(`${WS_URL}?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIyMDA3M2MxNS04NWY5LTQ1YmYtOWZmNS1lNzQ5NTRiMTljOGQiLCJpYXQiOjE3NTA0NDM3Njh9.VFDf6FDcB6WM1nkbfBEo-A_R8AYelPcNVi78B3354qk`)
-     ws.onopen = () => {
+      if (!token) return;
+      const ws = new WebSocket(`${WS_URL}?token=${token}`);
+      ws.onopen = () => {
             setSocket(ws);
             const data = JSON.stringify({
                 type: "join_room",
                 roomId
             });
-            console.log(data);
             ws.send(data)
         }
-        
-    }, [])
+    }, [roomId, token]);
 
-  
-    
-  if(!socket){
-    return 
-     <div> connecting to server....</div>
-  }
+    if(!socket){
+      return <div> connecting to server....</div>
+    }
     return <div>
-     <Canvas roomId ={roomId} socket={socket}/>
-     
+      <Canvas roomId={roomId} socket={socket}/>
     </div>
 }

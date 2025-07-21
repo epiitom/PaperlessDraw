@@ -2,7 +2,7 @@ import {useState,useEffect,useRef} from "react"
 import {Circle, RectangleHorizontalIcon,Eraser,ArrowRight,Pencil, MousePointer} from "lucide-react"
 import {IconButton} from "./IconsButton"
 import { Game } from "@/draw/Game";
-import { useAuth } from "@/context/AuthContext";
+
 
 export type Tool = "circle"|"rect"|"pencil"| "eraser"|"line"|"multi-select";
 

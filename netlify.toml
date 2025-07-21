@@ -1,5 +1,6 @@
 [build]
-  command = "pnpm install && pnpm run build --filter=excelidraw-frontend"
+  base = "apps/excelidraw-frontend"
+  command = "pnpm install && pnpm run build"
   publish = "."
 
 [build.environment]

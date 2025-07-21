@@ -1,6 +1,6 @@
 [build]
   command = "npm run build"
-  publish = ".next"
+  publish = "."   # ✅ Use "." for SSR or dynamic sites, OR leave it blank.
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"

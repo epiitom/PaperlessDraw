@@ -1,6 +1,6 @@
 [build]
   command = "pnpm install && pnpm run build --filter=excelidraw-frontend"
-  publish = "apps/excelidraw-frontend/.next"
+  publish = "apps/excelidraw-frontend"
 
 [build.environment]
   NODE_VERSION = "18"

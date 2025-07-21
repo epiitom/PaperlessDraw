@@ -1,13 +1,9 @@
 [build]
-  base = "apps/excelidraw-frontend"
-  command = "pnpm install && pnpm run build"
-  publish = "."
+  command = "pnpm install --frozen-lockfile && pnpm turbo run build --filter=excelidraw-frontend"
+  publish = "apps/excelidraw-frontend/.next"
 
 [build.environment]
   NODE_VERSION = "18"
 
-# For Next.js dynamic routing on Netlify
 [[plugins]]
   package = "@netlify/plugin-nextjs"
-
-# Remove the SPA redirect since Next.js will handle routing

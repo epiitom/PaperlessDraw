@@ -1,12 +1,12 @@
 [build]
   command = "pnpm install && pnpm run build --filter=excelidraw-frontend"
-  publish = "apps/excelidraw-frontend/out"
+  publish = "apps/excelidraw-frontend/.next"
 
 [build.environment]
   NODE_VERSION = "18"
 
-# Optional: Redirect rules for SPA
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+# For Next.js dynamic routing on Netlify
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# Remove the SPA redirect since Next.js will handle routing

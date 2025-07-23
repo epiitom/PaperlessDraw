@@ -1,12 +1,17 @@
 {
   "name": "@repo/db",
   "version": "1.0.0",
-  "main": "index.js",
-  "exports" :{
-     "./client":"./dist/index.js"
+  "main": "dist/index.js",
+  "exports": {
+    "./client": "./dist/index.js"
   },
   "scripts": {
-      "build": "tsc -b"
+    "build": "tsc -b",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio",
+    "postinstall": "prisma generate"
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",

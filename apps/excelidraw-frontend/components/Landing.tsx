@@ -248,7 +248,7 @@ function Landing() {
           <div className="bg-gradient-to-r from-indigo-500/10 to-purple-500/10 p-2 rounded-xl">
             <Palette className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
           </div>
-          <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">
+          <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-white">
             PaperlessDraw
           </h1>
         </div>

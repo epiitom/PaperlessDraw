@@ -35,7 +35,7 @@ export default function RoomEntryPage() {
           "Authorization": `Bearer ${token}`
         },
         body: JSON.stringify({ 
-          name: roomName.trim() // This matches your backend CreateRoomSchema
+          name: roomName.trim()
         })
       });
       
@@ -43,18 +43,14 @@ export default function RoomEntryPage() {
       
       if (res.ok) {
         console.log("Room created successfully:", data);
-        // Backend returns: { roomId: number, slug: string }
-        // Route to the room using the numeric roomId, not the slug
         if (data.roomId) {
           router.push(`/canvas/${data.roomId}`);
         } else {
-          // Fallback to slug if roomId is not available
           router.push(`/canvas/${data.slug}`);
         }
       } else {
         console.error("Failed to create room:", data);
         
-        // Handle specific error cases
         if (res.status === 401 || res.status === 403) {
           alert("Authentication failed. Please login again.");
           router.push('/signin');
@@ -87,7 +83,6 @@ export default function RoomEntryPage() {
     setIsJoining(true);
     
     try {
-      // Use the slug to find the room
       const res = await fetch(`${API_BASE}/room/${roomName.trim()}`, {
         headers: {
           "Authorization": `Bearer ${token}`
@@ -98,12 +93,9 @@ export default function RoomEntryPage() {
       
       if (res.ok && data.room) {
         console.log("Room found:", data.room);
-        // Backend returns: { room: { id: number, slug: string, adminId: string } }
-        // Route to the room using the numeric id, not the slug
         if (data.room.id) {
           router.push(`/canvas/${data.room.id}`);
         } else {
-          // Fallback to slug if id is not available
           router.push(`/canvas/${data.room.slug}`);
         }
       } else {
@@ -125,12 +117,12 @@ export default function RoomEntryPage() {
   };
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#18181b] flex items-center justify-center p-4">
       {/* Background Pattern */}
-      <div className="absolute inset-0 opacity-5">
+      <div className="absolute inset-0 opacity-3">
         <div className="absolute inset-0" style={{
-          backgroundImage: 'radial-gradient(circle at 25% 25%, #64748b 1px, transparent 1px), radial-gradient(circle at 75% 75%, #64748b 1px, transparent 1px)',
-          backgroundSize: '50px 50px'
+          backgroundImage: 'radial-gradient(circle at 25% 25%, #333333 1px, transparent 1px), radial-gradient(circle at 75% 75%, #333333 1px, transparent 1px)',
+          backgroundSize: '60px 60px'
         }}></div>
       </div>
 
@@ -138,19 +130,19 @@ export default function RoomEntryPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center mb-4">
-            <div className="bg-gradient-to-r from-purple-500 to-pink-500 p-3 rounded-full">
-              <Palette className="w-8 h-8 text-white" />
+            <div className="bg-[#C0C0C0] p-3 rounded-full shadow-lg">
+              <Palette className="w-8 h-8 text-black" />
             </div>
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">Paperless Draw</h1>
-          <p className="text-slate-400">Enter your collaborative workspace</p>
+          <h1 className="text-4xl font-bold text-white mb-2 tracking-tight">Paperless Draw</h1>
+          <p className="text-gray-400 font-medium">Enter your collaborative workspace</p>
         </div>
 
         {/* Main Card */}
-        <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-2xl p-8 shadow-2xl">
+        <div className="bg-black backdrop-blur-md border border-gray-800 rounded-3xl p-8 shadow-2xl">
           {/* Room Name Input */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+          <div className="mb-8">
+            <label className="block text-sm font-semibold text-gray-300 mb-3">
               Room Name
             </label>
             <div className="relative">
@@ -159,7 +151,7 @@ export default function RoomEntryPage() {
                 value={roomName}
                 onChange={(e) => setRoomName(e.target.value)}
                 placeholder="e.g. design-team, art-project"
-                className="w-full p-4 bg-slate-700/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                className="w-full p-4 bg-slate border border-gray-700 rounded-2xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white focus:border-white transition-all duration-300 font-medium"
                 disabled={isCreating || isJoining}
                 onKeyPress={(e) => {
                   if (e.key === 'Enter' && roomName.trim()) {
@@ -168,7 +160,7 @@ export default function RoomEntryPage() {
                 }}
               />
               <div className="absolute inset-y-0 right-4 flex items-center">
-                <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
+                <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
               </div>
             </div>
           </div>
@@ -179,11 +171,11 @@ export default function RoomEntryPage() {
             <button 
               onClick={createRoom} 
               disabled={isCreating || isJoining || !roomName.trim()}
-              className="w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white p-4 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-purple-500/25"
+              className="w-full bg-white hover:bg-gray-100 text-black p-4 rounded-2xl font-bold transition-all duration-300 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98]"
             >
               {isCreating ? (
                 <>
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
                   Creating Canvas...
                 </>
               ) : (
@@ -198,7 +190,7 @@ export default function RoomEntryPage() {
             <button 
               onClick={joinRoom} 
               disabled={isCreating || isJoining || !roomName.trim()}
-              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white p-4 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-blue-500/25"
+              className="w-full bg-gray-800 hover:bg-gray-700 text-white p-4 rounded-2xl font-bold transition-all duration-300 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98] border border-gray-700"
             >
               {isJoining ? (
                 <>
@@ -216,8 +208,8 @@ export default function RoomEntryPage() {
           </div>
 
           {/* Info Text */}
-          <div className="mt-6 text-center">
-            <p className="text-slate-400 text-sm">
+          <div className="mt-8 text-center">
+            <p className="text-gray-400 text-sm font-medium leading-relaxed">
               Create a new collaborative canvas or join an existing one to start creating together
             </p>
           </div>
@@ -225,8 +217,8 @@ export default function RoomEntryPage() {
 
         {/* Footer */}
         <div className="text-center mt-8">
-          <p className="text-slate-500 text-sm">
-            Powered by collaborative creativity
+          <p className="text-gray-600 text-sm font-medium">
+            Powered by Prathmesh Kale
           </p>
         </div>
       </div>

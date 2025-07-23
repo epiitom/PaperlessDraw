@@ -1,6 +1,0 @@
-[build]
-  base = "" # repo root
-  publish = "apps/excelidraw-frontend/.next"
-  command = "npx turbo run build --filter=excelidraw-frontend"
-[build.environment]
-  NODE_VERSION = "18"

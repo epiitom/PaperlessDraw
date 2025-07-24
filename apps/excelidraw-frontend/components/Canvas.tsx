@@ -1,5 +1,5 @@
 import {useState,useEffect,useRef} from "react"
-import {Circle, RectangleHorizontalIcon,Eraser,ArrowRight,Pencil, MousePointer} from "lucide-react"
+import {Circle, RectangleHorizontalIcon,Eraser,Scan,Pencil, MousePointer,Minus} from "lucide-react"
 import {IconButton} from "./IconsButton"
 import { Game } from "@/draw/Game";
 
@@ -76,7 +76,7 @@ function Topbar({selectedTool,setSelectedTool}:{
         <div className="flex gap-1">
             <IconButton onClick={() => {
                 setSelectedTool("line")
-            }} activated={selectedTool === "line"} icon={<ArrowRight/>}/>
+            }} activated={selectedTool === "line"} icon={<Minus/>}/>
             <IconButton onClick={() => {
                 setSelectedTool("pencil")
             }} activated={selectedTool === "pencil"} icon={<Pencil/>}/>
@@ -91,7 +91,7 @@ function Topbar({selectedTool,setSelectedTool}:{
             }} activated={selectedTool === "eraser"} icon={<Eraser/>}/>
             <IconButton onClick={() => setSelectedTool('multi-select')}
                 activated={selectedTool === 'multi-select'}
-                icon={<MousePointer color={selectedTool === 'multi-select' ? '#f97316' : undefined}/>} />
+                icon={<Scan/>} />
         </div>
     </div>
 }

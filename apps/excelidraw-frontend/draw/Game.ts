@@ -55,7 +55,14 @@ export class Game {
     private isMovingSelection: boolean = false;
     private dragOffset: { x: number; y: number } | null = null;
     private lastDragPos: { x: number; y: number } | null = null;
-
+    private scale: number = 1;
+    private offsetX: number = 0;
+    private offsetY: number = 0;
+    private minScale: number = 0.1;
+    private maxScale: number = 5;
+    private isPanning: boolean = false;
+    private lastPanX: number = 0;
+    private lastPanY: number = 0;
     constructor(canvas: HTMLCanvasElement, roomId: string, socket: WebSocket) {
         this.canvas = canvas;
         this.ctx = canvas.getContext("2d")!;
@@ -76,6 +83,7 @@ export class Game {
         this.canvas.removeEventListener("mouseup", this.mouseUpHandler);
         this.canvas.removeEventListener("mousemove", this.mouseMoveHandler);
         this.canvas.removeEventListener("mouseleave", this.mouseLeaveHandler);
+        this.canvas.removeEventListener("wheel", this.wheelHandler);
     }
      
     setTool(tool: Tool) {
@@ -232,37 +240,44 @@ export class Game {
             }
         }
     }
+clearCanvas() {
+    try {
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.fillStyle = "#18181b"; 
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        this.ctx.save();
+        this.ctx.translate(this.offsetX, this.offsetY);
+        this.ctx.scale(this.scale, this.scale);
 
-    clearCanvas() {
-        try {
-            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-            this.ctx.fillStyle = "#18181b"; 
-            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        if (!Array.isArray(this.existingShapes)) {
+            console.warn("existingShapes is not an array, resetting to empty array");
+            this.existingShapes = [];
+            this.ctx.restore(); // Don't forget to restore!
+            return;
+        }
 
-            if (!Array.isArray(this.existingShapes)) {
-                console.warn("existingShapes is not an array, resetting to empty array");
-                this.existingShapes = [];
-                return;
-            }
-
-            this.existingShapes.forEach((shape, index) => {
-                try {
-                    if (!shape || !shape.shape || !shape.shape.type) {
-                        console.warn(`Invalid shape at index ${index}:`, shape);
-                        return;
-                    }
-                    // Highlight if selected
-                    if (this.selectedShapeIds.has(shape.id)) {
-                        this.ctx.save();
-                        this.ctx.strokeStyle = "#00bfff";
-                        this.ctx.lineWidth = 4;
-                        this.ctx.shadowColor = "#00bfff";
-                        this.ctx.shadowBlur = 8;
-                    } else {
-                        this.ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
-                        this.ctx.lineWidth = 2;
-                        this.ctx.shadowBlur = 0;
-                    }
+        // Draw existing shapes...
+        this.existingShapes.forEach((shape, index) => {
+            try {
+                if (!shape || !shape.shape || !shape.shape.type) {
+                    console.warn(`Invalid shape at index ${index}:`, shape);
+                    return;
+                }
+                
+                // Highlight if selected
+                if (this.selectedShapeIds.has(shape.id)) {
+                    this.ctx.save();
+                    this.ctx.strokeStyle = "#00bfff";
+                    this.ctx.lineWidth = 4;
+                    this.ctx.shadowColor = "#00bfff";
+                    this.ctx.shadowBlur = 8;
+                } else {
+                    this.ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
+                    this.ctx.lineWidth = 2;
+                    this.ctx.shadowBlur = 0;
+                }
+                
                     
                     switch (shape.shape.type) {
                         case "rect":
@@ -297,10 +312,13 @@ export class Game {
                     }
                 } catch (drawError) {
                     console.error(`Error drawing shape at index ${index}:`, drawError, shape);
+                    this.ctx.restore();
                 }
             });
+             this.ctx.restore();
         } catch (error) {
             console.error("Error in clearCanvas:", error);
+            this.ctx.restore();
         }
     }
 
@@ -342,267 +360,325 @@ export class Game {
         
         this.ctx.stroke();
     }
-
     private getMousePos(e: MouseEvent): { x: number; y: number } {
-        const rect = this.canvas.getBoundingClientRect();
-        return {
-            x: e.clientX - rect.left,
-            y: e.clientY - rect.top
-        };
-    }
+    const rect = this.canvas.getBoundingClientRect();
+    return {
+        x: (e.clientX - rect.left - this.offsetX) / this.scale,
+        y: (e.clientY - rect.top - this.offsetY) / this.scale
+    };
+ }
+mouseDownHandler = (e: MouseEvent) => {
+    try {
+        const pos = this.getMousePos(e);
+        
+        // Check for panning FIRST, before tool-specific logic
+        if (e.button === 1 || (e.button === 0 && e.ctrlKey)) {
+            this.isPanning = true;
+            this.lastPanX = e.clientX;
+            this.lastPanY = e.clientY;
+            this.canvas.style.cursor = "grabbing";
+            return; // Exit early for panning
+        }
+        
+        // Set position variables but DON'T set isDrawing yet for multi-select
+        this.startX = pos.x;
+        this.startY = pos.y;
+        this.lastX = pos.x;
+        this.lastY = pos.y;
 
-    mouseDownHandler = (e: MouseEvent) => {
-        try {
-            const pos = this.getMousePos(e);
+        if (this.selectedTool === "eraser") {
             this.isDrawing = true;
-            this.startX = pos.x;
-            this.startY = pos.y;
-            this.lastX = pos.x;
-            this.lastY = pos.y;
-
-            if (this.selectedTool === "eraser") {
-                this.eraseShapeAt(pos.x, pos.y);
-            } else if (this.selectedTool === "pencil") {
-                this.currentPencilPoints = [{ x: pos.x, y: pos.y }];
-            } else if (this.selectedTool === "multi-select") {
-                // If any selected shape is under the mouse, start moving
-                let clickedSelectedShape = false;
-                for (const item of this.existingShapes) {
-                    if (this.selectedShapeIds.has(item.id) && this.isPointInShape(pos.x, pos.y, item.shape)) {
-                        clickedSelectedShape = true;
-                        break;
-                    }
+            this.eraseShapeAt(pos.x, pos.y);
+        } else if (this.selectedTool === "pencil") {
+            this.isDrawing = true;
+            this.currentPencilPoints = [{ x: pos.x, y: pos.y }];
+        } else if (this.selectedTool === "multi-select") {
+            // Check if clicking on an already selected shape
+            let clickedSelectedShape = false;
+            for (const item of this.existingShapes) {
+                if (this.selectedShapeIds.has(item.id) && this.isPointInShape(pos.x, pos.y, item.shape)) {
+                    clickedSelectedShape = true;
+                    break;
                 }
-                if (clickedSelectedShape && this.selectedShapeIds.size > 0) {
-                    this.isMovingSelection = true;
-                    this.isDraggingSelection = false;
-                    this.dragOffset = { x: pos.x, y: pos.y };
-                    this.lastDragPos = { x: pos.x, y: pos.y };
-                } else {
-                    // Start new selection
-                    this.isDraggingSelection = true;
-                    this.isMovingSelection = false;
-                    this.multiSelectRect = { x: pos.x, y: pos.y, width: 0, height: 0 };
-                    this.selectedShapeIds.clear();
-                    this.clearCanvas();
-                }
-            }
-        } catch (error) {
-            console.error("Error in mouseDownHandler:", error);
-        }
-    }
-
-    mouseUpHandler = (e: MouseEvent) => {
-        try {
-            if (!this.isDrawing) return;
-            this.isDrawing = false;
-            const pos = this.getMousePos(e);
-            if (this.selectedTool === "multi-select") {
-                if (this.isDraggingSelection) {
-                    // Finalize selection
-                    this.clearCanvas();
-                    this.multiSelectRect = this.multiSelectRect; // keep for moving
-                    this.isDraggingSelection = false;
-                } else if (this.isMovingSelection) {
-                    // Finalize move
-                    this.clearCanvas();
-                    this.isMovingSelection = false;
-                    this.dragOffset = null;
-                    this.lastDragPos = null;
-                }
-                return;
             }
             
-            const width = pos.x - this.startX;
-            const height = pos.y - this.startY;
-            
-            let shape: ShapeWithId | null = null;
-            
-            switch (this.selectedTool) {
-                case "rect":
-                    shape = {
-                        id: Date.now(), // Assign a new ID
-                        shape: {
-                            type: "rect",
-                            x: this.startX,
-                            y: this.startY,
-                            width: width,
-                            height: height
-                        }
-                    };
-                    break;
-                    
-                case "circle":
-                    const radius = Math.max(Math.abs(width), Math.abs(height)) / 2;
-                    shape = {
-                        id: Date.now(), // Assign a new ID
-                        shape: {
-                            type: "circle",
-                            centerX: this.startX + width / 2,
-                            centerY: this.startY + height / 2,
-                            radius: radius
-                        }
-                    };
-                    break;
-                    
-                case "line":
-                    if (this.startX !== pos.x || this.startY !== pos.y) {
-                        shape = {
-                            id: Date.now(), // Assign a new ID
-                            shape: {
-                                type: "line",
-                                startX: this.startX,
-                                startY: this.startY,
-                                endX: pos.x,
-                                endY: pos.y
-                            }
-                        };
-                        console.log("Line shape created:", shape);
-                    } else {
-                        console.log("Line not created: start and end points are the same");
-                    }
-                    break;
-                
-                case "pencil":
-                    if (this.currentPencilPoints.length > 1) {
-                        shape = {
-                            id: Date.now(), // Assign a new ID
-                            shape: {
-                                type: "pencil",
-                                points: [...this.currentPencilPoints]
-                            }
-                        };
-                    }
-                    this.currentPencilPoints = [];
-                    break;
-            }
-
-            if (shape) {
-                this.existingShapes.push(shape);
-                this.clearCanvas();
-                this.socket.send(JSON.stringify({
-                    type: "chat",
-                    message: JSON.stringify({ shape: shape.shape }),
-                    roomId: this.roomId
-                }));
-            }
-        } catch (error) {
-            console.error("Error in mouseUpHandler:", error);
-        }
-    }
-
-    mouseMoveHandler = (e: MouseEvent) => {
-        try {
-            if (!this.isDrawing) return;
-            const pos = this.getMousePos(e);
-
-            if (this.selectedTool === "eraser") {
-                this.eraseShapeAt(pos.x, pos.y);
-                return;
-            }
-            if (this.selectedTool === "pencil") {
-                // Add point only if it's far enough from the last point for smoother drawing
-                const distance = Math.sqrt(
-                    Math.pow(pos.x - this.lastX, 2) + Math.pow(pos.y - this.lastY, 2)
-                );
-                
-                if (distance > 1) { // Reduced threshold for smoother drawing
-                    this.currentPencilPoints.push({ x: pos.x, y: pos.y });
-                    this.lastX = pos.x;
-                    this.lastY = pos.y;
-                    
-                    // Redraw everything including current stroke
-                    this.clearCanvas();
-                    
-                    // Draw current pencil stroke in progress
-                    if (this.currentPencilPoints.length > 1) {
-                        this.drawSmoothPencilStroke(this.currentPencilPoints);
-                    }
-                }
-                return;
-            }
-            // Multi-select dragging selection rectangle
-            if (this.selectedTool === "multi-select" && this.isDraggingSelection && this.multiSelectRect) {
-                this.multiSelectRect.width = pos.x - this.startX;
-                this.multiSelectRect.height = pos.y - this.startY;
-                this.clearCanvas();
-                // Draw selection rectangle
-                this.ctx.save();
-                this.ctx.strokeStyle = "#00bfff";
-                this.ctx.setLineDash([6]);
-                this.ctx.lineWidth = 2;
-                this.ctx.strokeRect(this.multiSelectRect.x, this.multiSelectRect.y, this.multiSelectRect.width, this.multiSelectRect.height);
-                this.ctx.restore();
-                // Highlight shapes inside selection
-                this.selectedShapeIds.clear();
-                const rect = this.getNormalizedRect(this.multiSelectRect);
-                for (const item of this.existingShapes) {
-                    if (this.isShapeInRect(item.shape, rect)) {
-                        this.selectedShapeIds.add(item.id);
-                    }
-                }
-                return;
-            }
-            // Multi-select moving selected shapes
-            if (this.selectedTool === "multi-select" && this.isMovingSelection && this.dragOffset && this.lastDragPos) {
-                const dx = pos.x - this.lastDragPos.x;
-                const dy = pos.y - this.lastDragPos.y;
-                // Move all selected shapes
-                for (const item of this.existingShapes) {
-                    if (this.selectedShapeIds.has(item.id)) {
-                        this.moveShape(item.shape, dx, dy);
-                    }
-                }
-                // Move the selection rectangle as well
-                if (this.multiSelectRect) {
-                    this.multiSelectRect.x += dx;
-                    this.multiSelectRect.y += dy;
-                }
+            if (clickedSelectedShape && this.selectedShapeIds.size > 0) {
+                // Start moving selected shapes - DON'T set isDrawing for moving
+                this.isMovingSelection = true;
+                this.isDraggingSelection = false;
+                this.dragOffset = { x: pos.x, y: pos.y };
                 this.lastDragPos = { x: pos.x, y: pos.y };
+            } else {
+                // Start new selection rectangle - set isDrawing for selection
+                this.isDrawing = true;
+                this.isDraggingSelection = true;
+                this.isMovingSelection = false;
+                this.multiSelectRect = { x: pos.x, y: pos.y, width: 0, height: 0 };
+                this.selectedShapeIds.clear();
                 this.clearCanvas();
-                return;
+            }
+        } else {
+            // For other drawing tools (rect, circle, line)
+            this.isDrawing = true;
+        }
+    } catch (error) {
+        console.error("Error in mouseDownHandler:", error);
+    }
+}
+mouseUpHandler = (e: MouseEvent) => {
+    try {
+        // Handle panning end FIRST
+        if (this.isPanning) {
+            this.isPanning = false;
+            this.canvas.style.cursor = this.selectedTool === "eraser" ? "grab" : "crosshair";
+            return; // Exit early
+        }
+        
+        const pos = this.getMousePos(e);
+        
+        // Handle multi-select operations BEFORE checking isDrawing
+        if (this.selectedTool === "multi-select") {
+            if (this.isDraggingSelection) {
+                this.clearCanvas();
+                this.isDraggingSelection = false;
+                this.isDrawing = false; // Make sure to set this to false
+            } else if (this.isMovingSelection) {
+                // THIS IS THE KEY FIX - handle moving completion
+                this.clearCanvas();
+                this.isMovingSelection = false;
+                this.dragOffset = null;
+                this.lastDragPos = null;
+                
+                // Optionally send updates to server for moved shapes
+                // (You might want to batch this or send individual updates)
+            }
+            return;
+        }
+        
+        // NOW check isDrawing for other tools
+        if (!this.isDrawing) return;
+        this.isDrawing = false;
+        
+        // Rest of the mouseUpHandler logic for drawing tools
+        const width = pos.x - this.startX;
+        const height = pos.y - this.startY;
+        
+        let shape: ShapeWithId | null = null;
+        
+        switch (this.selectedTool) {
+            case "rect":
+                shape = {
+                    id: Date.now(),
+                    shape: {
+                        type: "rect",
+                        x: this.startX,
+                        y: this.startY,
+                        width: width,
+                        height: height
+                    }
+                };
+                break;
+                
+            case "circle":
+                const radius = Math.max(Math.abs(width), Math.abs(height)) / 2;
+                shape = {
+                    id: Date.now(),
+                    shape: {
+                        type: "circle",
+                        centerX: this.startX + width / 2,
+                        centerY: this.startY + height / 2,
+                        radius: radius
+                    }
+                };
+                break;
+                
+            case "line":
+                if (this.startX !== pos.x || this.startY !== pos.y) {
+                    shape = {
+                        id: Date.now(),
+                        shape: {
+                            type: "line",
+                            startX: this.startX,
+                            startY: this.startY,
+                            endX: pos.x,
+                            endY: pos.y
+                        }
+                    };
+                }
+                break;
+            
+            case "pencil":
+                if (this.currentPencilPoints.length > 1) {
+                    shape = {
+                        id: Date.now(),
+                        shape: {
+                            type: "pencil",
+                            points: [...this.currentPencilPoints]
+                        }
+                    };
+                }
+                this.currentPencilPoints = [];
+                break;
+        }
+
+        if (shape) {
+            this.existingShapes.push(shape);
+            this.clearCanvas();
+            this.socket.send(JSON.stringify({
+                type: "chat",
+                message: JSON.stringify({ shape: shape.shape }),
+                roomId: this.roomId
+            }));
+        }
+    } catch (error) {
+        console.error("Error in mouseUpHandler:", error);
+    }
+}
+   mouseMoveHandler = (e: MouseEvent) => {
+    try {
+        // Handle panning FIRST
+        if (this.isPanning) {
+            const dx = e.clientX - this.lastPanX;
+            const dy = e.clientY - this.lastPanY;
+            this.offsetX += dx;
+            this.offsetY += dy;
+            this.lastPanX = e.clientX;
+            this.lastPanY = e.clientY;
+            this.clearCanvas();
+            return; // Exit early
+        }
+        
+        const pos = this.getMousePos(e);
+        
+        // Handle multi-select moving selected shapes (this should NOT require isDrawing to be true)
+        if (this.selectedTool === "multi-select" && this.isMovingSelection && this.dragOffset && this.lastDragPos) {
+            const dx = pos.x - this.lastDragPos.x;
+            const dy = pos.y - this.lastDragPos.y;
+            
+            // Move all selected shapes
+            for (const item of this.existingShapes) {
+                if (this.selectedShapeIds.has(item.id)) {
+                    this.moveShape(item.shape, dx, dy);
+                }
             }
             
-            // For other tools, show preview
-            const width = pos.x - this.startX;
-            const height = pos.y - this.startY;
+            // Move the selection rectangle as well
+            if (this.multiSelectRect) {
+                this.multiSelectRect.x += dx;
+                this.multiSelectRect.y += dy;
+            }
             
+            this.lastDragPos = { x: pos.x, y: pos.y };
+            this.clearCanvas();
+            return;
+        }
+        
+        // Exit early if not drawing (for other operations that don't require isDrawing)
+        if (!this.isDrawing) return;
+        
+        if (this.selectedTool === "eraser") {
+            this.eraseShapeAt(pos.x, pos.y);
+            return;
+        }
+        
+        if (this.selectedTool === "pencil") {
+            // Add point only if it's far enough from the last point for smoother drawing
+            const distance = Math.sqrt(
+                Math.pow(pos.x - this.lastX, 2) + Math.pow(pos.y - this.lastY, 2)
+            );
+            
+            if (distance > 1) { // Reduced threshold for smoother drawing
+                this.currentPencilPoints.push({ x: pos.x, y: pos.y });
+                this.lastX = pos.x;
+                this.lastY = pos.y;
+                
+                // Redraw everything including current stroke
+                this.clearCanvas();
+                
+                // Draw current pencil stroke in progress
+                if (this.currentPencilPoints.length > 1) {
+                    this.ctx.save();
+                    this.ctx.translate(this.offsetX, this.offsetY);
+                    this.ctx.scale(this.scale, this.scale);
+                    this.drawSmoothPencilStroke(this.currentPencilPoints);
+                    this.ctx.restore();
+                }
+            }
+            return;
+        }
+        
+        // Multi-select dragging selection rectangle
+        if (this.selectedTool === "multi-select" && this.isDraggingSelection && this.multiSelectRect) {
+            this.multiSelectRect.width = pos.x - this.startX;
+            this.multiSelectRect.height = pos.y - this.startY;
             this.clearCanvas();
             
-            this.ctx.strokeStyle = "rgba(255, 255, 255, 0.7)";
+            // Draw selection rectangle with transforms applied
+            this.ctx.save();
+            this.ctx.translate(this.offsetX, this.offsetY);
+            this.ctx.scale(this.scale, this.scale);
+            this.ctx.strokeStyle = "#00bfff";
+            this.ctx.setLineDash([6]);
             this.ctx.lineWidth = 2;
+            this.ctx.strokeRect(this.multiSelectRect.x, this.multiSelectRect.y, 
+                               this.multiSelectRect.width, this.multiSelectRect.height);
+            this.ctx.restore();
             
-            switch (this.selectedTool) {
-                case "rect":
-                    this.ctx.strokeRect(this.startX, this.startY, width, height);
-                    break;
-                    
-                case "circle":
-                    const radius = Math.max(Math.abs(width), Math.abs(height)) / 2;
-                    const centerX = this.startX + width / 2;
-                    const centerY = this.startY + height / 2;
-                    this.ctx.beginPath();
-                    this.ctx.arc(centerX, centerY, Math.abs(radius), 0, Math.PI * 2);
-                    this.ctx.stroke();
-                    this.ctx.closePath();
-                    break;
-                    
-                case "line":
-                    this.ctx.save();
-                    this.ctx.beginPath();
-                    this.ctx.lineWidth = 4;
-                    this.ctx.lineCap = "round";
-                    this.ctx.moveTo(this.startX, this.startY);
-                    this.ctx.lineTo(pos.x, pos.y);
-                    this.ctx.stroke();
-                    this.ctx.restore();
-                    break;
+            // Highlight shapes inside selection
+            this.selectedShapeIds.clear();
+            const rect = this.getNormalizedRect(this.multiSelectRect);
+            for (const item of this.existingShapes) {
+                if (this.isShapeInRect(item.shape, rect)) {
+                    this.selectedShapeIds.add(item.id);
+                }
             }
-        } catch (error) {
-            console.error("Error in mouseMoveHandler:", error);
+            return;
         }
+        
+        // For other tools, show preview
+        const width = pos.x - this.startX;
+        const height = pos.y - this.startY;
+        
+        this.clearCanvas();
+        
+        // Apply transforms for preview drawing
+        this.ctx.save();
+        this.ctx.translate(this.offsetX, this.offsetY);
+        this.ctx.scale(this.scale, this.scale);
+        this.ctx.strokeStyle = "rgba(255, 255, 255, 0.7)";
+        this.ctx.lineWidth = 2;
+        
+        switch (this.selectedTool) {
+            case "rect":
+                this.ctx.strokeRect(this.startX, this.startY, width, height);
+                break;
+                
+            case "circle":
+                const radius = Math.max(Math.abs(width), Math.abs(height)) / 2;
+                const centerX = this.startX + width / 2;
+                const centerY = this.startY + height / 2;
+                this.ctx.beginPath();
+                this.ctx.arc(centerX, centerY, Math.abs(radius), 0, Math.PI * 2);
+                this.ctx.stroke();
+                this.ctx.closePath();
+                break;
+                
+            case "line":
+                this.ctx.beginPath();
+                this.ctx.lineWidth = 4;
+                this.ctx.lineCap = "round";
+                this.ctx.moveTo(this.startX, this.startY);
+                this.ctx.lineTo(pos.x, pos.y);
+                this.ctx.stroke();
+                break;
+        }
+        
+        this.ctx.restore();
+        
+    } catch (error) {
+        console.error("Error in mouseMoveHandler:", error);
     }
-
+}
     mouseLeaveHandler = (e: MouseEvent) => {
         // End drawing when mouse leaves canvas
         if (this.isDrawing) {
@@ -689,8 +765,24 @@ private eraseShapeAt(x: number, y: number) {
             return false;
         }
     }
+    wheelHandler = (e: WheelEvent) => {
+    e.preventDefault();
+    const rect = this.canvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    
+    const wheel = e.deltaY < 0 ? 1.1 : 0.9;
+    const newScale = Math.min(Math.max(this.minScale, this.scale * wheel), this.maxScale);
+    
+    this.offsetX = mouseX - (mouseX - this.offsetX) * (newScale / this.scale);
+    this.offsetY = mouseY - (mouseY - this.offsetY) * (newScale / this.scale);
+    this.scale = newScale;
+    
+    this.clearCanvas();
+};
 
     initMouseHandlers() {
+        this.canvas.addEventListener("wheel", this.wheelHandler);
         this.canvas.addEventListener("mousedown", this.mouseDownHandler);
         this.canvas.addEventListener("mouseup", this.mouseUpHandler);
         this.canvas.addEventListener("mousemove", this.mouseMoveHandler);

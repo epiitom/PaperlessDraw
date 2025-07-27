@@ -146,7 +146,7 @@ function isPointInShape(x: number, y: number, shape: Shape["shape"]): boolean {
 
 // Fetch shapes from server
 async function getExistingShapes(roomId: string): Promise<Shape[]> {
-    const res = await axios.get(`${HTTP_BACKEND}/chats/${roomId}`);
+    const res = await axios.get(`${HTTP_BACKEND}/v1/chats/${roomId}`);
     const messages = res.data.messages;
 
     return messages.map((x: { id: number; message: string }) => {

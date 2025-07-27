@@ -126,7 +126,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       // API call
-      const response = await fetch(`${HTTP_BACKEND}/signup`, {
+      const response = await fetch(`${HTTP_BACKEND}/v1/signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -177,7 +177,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     dispatch({ type: 'AUTH_START' });
 
     try {
-      const response = await fetch(`${HTTP_BACKEND}/signin`, {
+      const response = await fetch(`${HTTP_BACKEND}/v1/signin`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

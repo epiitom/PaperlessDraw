@@ -28,7 +28,7 @@ export default function RoomEntryPage() {
     setIsCreating(true);
     
     try {
-      const res = await fetch(`${API_BASE}/room`, {
+      const res = await fetch(`${API_BASE}/v1/room`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -83,7 +83,7 @@ export default function RoomEntryPage() {
     setIsJoining(true);
     
     try {
-      const res = await fetch(`${API_BASE}/room/${roomName.trim()}`, {
+      const res = await fetch(`${API_BASE}/v1/room/${roomName.trim()}`, {
         headers: {
           "Authorization": `Bearer ${token}`
         }

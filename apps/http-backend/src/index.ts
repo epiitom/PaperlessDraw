@@ -6,100 +6,109 @@ import {CreateuserSchema , SiginSchema, CreateRoomSchema } from "@repo/common/ty
 import {prismaClient} from "@repo/db/client"
 import { Request, Response } from "express";
 import cors from "cors"
+
 const app = express();
 app.use(express.json()); 
-app.use(cors(  {origin: true, // Allow all origins in development
-  credentials: true}))
+app.use(cors({
+    origin: true, // Allow all origins in development
+    credentials: true
+}))
 
-  
 interface DeleteByPointBody {
-  x: number;
-  y: number;
+    x: number;
+    y: number;
 }
-app.post("/signup" , async(req,res) => {
-         console.log("Received body:", req.body);
+
+// Fixed routes with proper leading slash
+app.post("/v1/signup", async(req, res) => {
+    console.log("Received body:", req.body);
     console.log("Body keys:", Object.keys(req.body));
     console.log("Body values:", Object.values(req.body));
 
-      const parsedData = CreateuserSchema.safeParse(req.body);
+    const parsedData = CreateuserSchema.safeParse(req.body);
     if(!parsedData.success){
-    console.log("❌ VALIDATION ERRORS:", parsedData.error.issues);
-    res.json({
-        message: "incorrect inputs",
-        details: parsedData.error.issues
-    })
-    return
-}
-      try{
-    const user =  await prismaClient.users.create({
-          data:{
-              email: parsedData.data?.username,
-              password: parsedData.data?.password,
-              name: parsedData.data.name
-          }   
-      })
-      res.json({
-       userId: user.id
-      })
-  }catch(e){
-       res.status(411).json({
-              message:"User already exists with this username"
-       })
-  } 
-    
-})
-app.post("/signin" ,async (req,res) => {
-      const parsedData = SiginSchema.safeParse(req.body);
-      if(!parsedData.success){
-       res.json({
-              message:"incorrect inputs"
-       })
-       return
-      }   
-        const  user = await prismaClient.users.findFirst({
-              where: {
-                     email:parsedData.data.username,
-                     password: parsedData.data.password
-              }
+        console.log("❌ VALIDATION ERRORS:", parsedData.error.issues);
+        res.json({
+            message: "incorrect inputs",
+            details: parsedData.error.issues
         })
-
-        if(!user){
-              res.status(403).json({
-                     message: "Not authorized"
-              })
-              return;
-        }
-      const token = jwt.sign({
-        userId:user?.id
-       } , JWT_SECRET);
-       res.json({
-        token
-       })
+        return
+    }
+    
+    try{
+        const user = await prismaClient.users.create({
+            data:{
+                email: parsedData.data?.username,
+                password: parsedData.data?.password,
+                name: parsedData.data.name
+            }   
+        })
+        res.json({
+            userId: user.id
+        })
+    }catch(e){
+        res.status(411).json({
+            message:"User already exists with this username"
+        })
+    } 
 })
 
-app.post("/room" ,middleware ,async(req,res) => {
-       const parsedData = CreateRoomSchema.safeParse(req.body);
-      if(!parsedData.success){
-       res.json({
-              message:"incorrect inputs"
-       })
-       return
-      }  
-       //@ts-ignore
-      const userId = req.userId;
-      try{
-       const room = await prismaClient.room.create({
-           data:{
-              slug:parsedData.data.name,
-              adminId:userId
-           }
-       })
-       res.json({
-        roomId : room.id,
-         slug: room.slug
-       })
-       return
-} catch (e: any) {
+app.post("/v1/signin", async (req, res) => {
+    const parsedData = SiginSchema.safeParse(req.body);
+    if(!parsedData.success){
+        res.json({
+            message:"incorrect inputs"
+        })
+        return
+    }   
+    
+    const user = await prismaClient.users.findFirst({
+        where: {
+            email: parsedData.data.username,
+            password: parsedData.data.password
+        }
+    })
+
+    if(!user){
+        res.status(403).json({
+            message: "Not authorized"
+        })
+        return;
+    }
+    
+    const token = jwt.sign({
+        userId: user?.id
+    }, JWT_SECRET);
+    
+    res.json({
+        token
+    })
+})
+
+app.post("/v1/room", middleware, async(req, res) => {
+    const parsedData = CreateRoomSchema.safeParse(req.body);
+    if(!parsedData.success){
+        res.json({
+            message:"incorrect inputs"
+        })
+        return
+    }  
+    
+    //@ts-ignore
+    const userId = req.userId;
+    try{
+        const room = await prismaClient.room.create({
+            data:{
+                slug: parsedData.data.name,
+                adminId: userId
+            }
+        })
+        res.json({
+            roomId: room.id,
+            slug: room.slug
+        })
+        return
+    } catch (e: any) {
         console.log('Full Database error:', JSON.stringify(e, null, 2));
         console.log('Error code:', e.code);
         console.log('Error message:', e.message);
@@ -129,9 +138,9 @@ app.post("/room" ,middleware ,async(req,res) => {
         });
         return;
     }
-    
 })
-app.get("/chats/:roomId", async (req, res) => {
+
+app.get("/v1/chats/:roomId", async (req, res) => {
     try {
         const roomId = Number(req.params.roomId);
         console.log(req.params.roomId);
@@ -154,23 +163,22 @@ app.get("/chats/:roomId", async (req, res) => {
             messages: []
         })
     }
-    
 })
-app.get("/room/:slug", async(req,res) => {
-       const slug = req.params.slug;
-       const room = await prismaClient.room.findFirst({
-              where: {
-                     slug
-              },
-         
-       })
-       res.json({
-           room
-       })
+
+app.get("/v1/room/:slug", async(req, res) => {
+    const slug = req.params.slug;
+    const room = await prismaClient.room.findFirst({
+        where: {
+            slug
+        },
+    })
+    res.json({
+        room
+    })
 })
 
 // Minimal DELETE endpoint for deleting a chat message (shape) by id
-app.delete("/chats/:messageId", async (req, res) => {
+app.delete("/v1/chats/:messageId", async (req, res) => {
     try {
         const messageId = Number(req.params.messageId);
         await prismaClient.chat.delete({
@@ -185,5 +193,5 @@ app.delete("/chats/:messageId", async (req, res) => {
 
 const PORT = process.env.PORT || 3002;
 app.listen(PORT, () => {
-  console.log(`HTTP backend listening on port ${PORT}`);
+    console.log(`HTTP backend listening on port ${PORT}`);
 });

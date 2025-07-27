@@ -20,7 +20,7 @@ export async function getExistingShapes(roomId: string): Promise<any[]> {
         }
         
         console.log('Fetching shapes for room:', roomIdNumber);
-        const res = await axios.get(`${HTTP_BACKEND}/chats/${roomIdNumber}`);
+        const res = await axios.get(`${HTTP_BACKEND}/v1/chats/${roomIdNumber}`);
         const messages = res.data.messages;
 
         if (!messages || messages.length === 0) {

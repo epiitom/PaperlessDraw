@@ -2,11 +2,6 @@
 
 *Collaborative drawing made simple and seamless*
 
-<div align="center">
-
-![PaperlessDraw Demo](https://readme-typing-svg.herokuapp.com?font=Fira+Code&size=24&duration=3000&pause=1000&color=FF6B35&center=true&vCenter=true&multiline=true&width=600&height=100&lines=Draw+Together;Create+Together;No+Paper+Needed)
-
-</div>
 
 ## ✨ What is PaperlessDraw?
 

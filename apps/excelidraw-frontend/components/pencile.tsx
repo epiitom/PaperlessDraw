@@ -4,7 +4,7 @@ const PencilDrawingBackground = () => {
       <svg
         width="100%"
         height="100%"
-        viewBox="0 0 1200 800"
+        viewBox="0 0 1200 600"
         className="absolute inset-0 scale-110"
         style={{ filter: "blur(0.3px) contrast(1.1)" }}
       >
@@ -75,7 +75,7 @@ const PencilDrawingBackground = () => {
         <g stroke="url(#sketchGradient)" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" filter="url(#glow)">
           
           {/* HERO: Central brain/neural network */}
-          <g transform="translate(600,180)" opacity="0.6">
+          <g transform="translate(180,180)" opacity="0.6">
             {/* Main brain outline */}
             <path d="M -40 -20 Q -50 -40 -30 -50 Q 0 -55 30 -50 Q 50 -40 40 -20 Q 45 0 35 20 Q 30 35 15 40 Q 0 42 -15 40 Q -30 35 -35 20 Q -45 0 -40 -20" 
                   strokeWidth="2.5" opacity="0.8" />

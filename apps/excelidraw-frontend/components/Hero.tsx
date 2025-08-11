@@ -24,7 +24,7 @@ const New = () => {
       
       {/* Main Heading */}
       <h1 className="max-w-3xl bg-gradient-to-b from-white to-neutral-500 text-7xl font-bold bg-clip-text text-center tracking-tight text-transparent leading-none">
-        One Canvas, Infinite minds and You
+      One Infinite Canvas. Endless Minds. Your Vision.
       </h1>
       
       {/* Description */}

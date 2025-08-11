@@ -13,12 +13,14 @@ const New = () => {
     <div className="min-h-[calc(100vh-170px)] flex flex-col items-center justify-center gap-7 px-4 py-8">
           <PencilDrawingBackground />
       {/* Badge */}
-      <div className="relative mt-9 group cursor-pointer">
-        <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-400 via-purple-500 to-cyan-400 rounded-md blur-sm opacity-75 group-hover:opacity-100 animate-pulse bg-[length:400%_400%] animate-gradient-x"></div>
-        <p className="relative text-white bg-black px-8 py-0.5 rounded-md border border-neutral-400">
-          Real time Collaborations
-        </p>
-      </div>
+ <div className="relative mt-9 group cursor-pointer">
+  <div className="absolute inset-0 rounded-md blur-sm opacity-50 group-hover:opacity-100 bg-monochrome-gradient"></div>
+  <p className="relative text-white bg-[#0a0b0b] px-8 py-0.5 rounded-md border border-neutral-400">
+    Real time Collaborations
+  </p>
+</div>
+
+
       
       {/* Main Heading */}
       <h1 className="max-w-3xl bg-gradient-to-b from-white to-neutral-500 text-7xl font-bold bg-clip-text text-center tracking-tight text-transparent leading-none">

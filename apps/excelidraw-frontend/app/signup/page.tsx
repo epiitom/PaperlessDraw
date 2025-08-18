@@ -81,7 +81,7 @@ export default function SignupForm() {
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl  text-black focus:border-transparent transition-all duration-200"
                   placeholder="Enter your full name"
                   disabled={loading}
                 />
@@ -101,7 +101,7 @@ export default function SignupForm() {
                   name="username"
                   value={formData.username}
                   onChange={handleChange}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl  text-black focus:border-transparent transition-all duration-200 bg-gray-50"
                   placeholder="Enter your email address"
                   disabled={loading}
                 />
@@ -121,7 +121,7 @@ export default function SignupForm() {
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl text-black focus:border-transparent transition-all duration-200 bg-gray-50 "
                   placeholder="Create a strong password"
                   disabled={loading}
                 />

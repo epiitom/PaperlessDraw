@@ -117,7 +117,7 @@ export default function RoomEntryPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#18181b] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#0a0b0b] flex items-center justify-center p-4">
       {/* Background Pattern */}
       <div className="absolute inset-0 opacity-3">
         <div className="absolute inset-0" style={{
@@ -130,8 +130,13 @@ export default function RoomEntryPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center mb-4">
-            <div className="bg-[#C0C0C0] p-3 rounded-full shadow-lg">
-              <Palette className="w-8 h-8 text-black" />
+            <div className="bg-black p-3 rounded-full shadow-lg">
+               <img
+              src="/scaling.svg"
+              alt="PaperlessDraw"
+              className="w-8 h-8 rounded "
+              loading="lazy"
+            />
             </div>
           </div>
           <h1 className="text-4xl font-bold text-white mb-2 tracking-tight">Paperless Draw</h1>

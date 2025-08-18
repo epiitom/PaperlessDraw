@@ -84,6 +84,88 @@ app.post("/v1/signin", async (req, res) => {
         token
     })
 })
+// Simplified version that works with your current schema
+app.post("/v1/auth/google", async (req: Request, res: Response) => {
+    const { code } = req.body;
+    
+    if (!code) {
+        res.status(400).json({
+            message: "Google auth code required"
+        });
+        return;
+    }
+
+    try {
+        // Exchange code for access token
+        const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                client_id: process.env.GOOGLE_CLIENT_ID,
+                client_secret: process.env.GOOGLE_CLIENT_SECRET,
+                code,
+                grant_type: 'authorization_code',
+                redirect_uri: process.env.GOOGLE_REDIRECT_URI,
+            }),
+        });
+
+        const tokens = await tokenResponse.json() as any;
+        
+        if (!tokenResponse.ok) {
+            throw new Error('Failed to get Google tokens');
+        }
+
+        // Get user info from Google
+        const userResponse = await fetch(
+            `https://www.googleapis.com/oauth2/v2/userinfo?access_token=${tokens.access_token}`
+        );
+        
+        const googleUser = await userResponse.json() as any;
+        
+        if (!userResponse.ok) {
+            throw new Error('Failed to get user info');
+        }
+
+        const { email, name, picture } = googleUser;
+
+        // Check if user exists
+        let user = await prismaClient.users.findUnique({
+            where: { email }
+        });
+
+        if (!user) {
+            // Create new user with your existing schema
+            user = await prismaClient.users.create({
+                data: {
+                    email,
+                    name,
+                    photo: picture,
+                    password: 'GOOGLE_AUTH' // Placeholder for Google users
+                }
+            });
+        }
+
+        // Generate JWT token (same as your signin route)
+        const token = jwt.sign({
+            userId: user.id
+        }, JWT_SECRET);
+
+        res.json({
+            token,
+            userId: user.id
+        });
+        return;
+
+    } catch (error) {
+        console.error('Google auth error:', error);
+        res.status(500).json({
+            message: "Google authentication failed"
+        });
+        return;
+    }
+});
 
 app.post("/v1/room", middleware, async(req, res) => {
     const parsedData = CreateRoomSchema.safeParse(req.body);

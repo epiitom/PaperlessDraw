@@ -64,13 +64,13 @@ function Topbar({selectedTool,setSelectedTool}:{
     setSelectedTool: (s:Tool) => void
 }){
     return <div style={{
-        background:"#27272a",
+        background:"#141417",
         position: "fixed",
         top: "5%",
         left: "50%",
         transform: "translate(-50%, -50%)",
         borderRadius:"15px",
-        padding: "8px",
+        padding: "2px",
         zIndex: 1000
     }}>
         <div className="flex gap-1">

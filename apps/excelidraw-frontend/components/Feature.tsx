@@ -109,7 +109,8 @@ const FeatureDescription = ({ children }: { children?: React.ReactNode }) => {
 
 export const SkeletonOne = () => {
   return (
-    <div className="relative flex py-1 px-1 gap-6 h-full">
+    <div id ="features" className="relative flex py-1 px-1 gap-6 h-full">
+    
       <div className="w-fit  p-5  mx-auto bg-white dark:bg-neutral-900 shadow-2xl group h-full">
         <div className="flex flex-1 w-fit h-full flex-col space-y-2  ">
           {/* TODO */}

@@ -117,7 +117,7 @@ export default function RoomEntryPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0b0b] flex items-center justify-center p-4">
+    <div id ="Room" className="min-h-screen bg-[#0a0b0b] flex items-center justify-center p-4">
       {/* Background Pattern */}
       <div className="absolute inset-0 opacity-3">
         <div className="absolute inset-0" style={{

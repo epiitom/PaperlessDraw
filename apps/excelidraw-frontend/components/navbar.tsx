@@ -60,7 +60,7 @@ const Navbar: React.FC = () => {
 
   const navigationLinks = [
     { title: "Features", href: '#features' },
-    { title: "Room", href: '#room' },
+    { title: "Room", href: 'Room' },
     { title: "Pricing", href: "#pricing" }
   ];
 
@@ -136,20 +136,7 @@ const Navbar: React.FC = () => {
                 {/* Dropdown Menu */}
                 {isDropdownOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-neutral-900 rounded-md shadow-lg border border-neutral-800 py-1 z-50">
-                    <Link
-                      href="/profile"
-                      className="block px-4 py-2 text-sm text-neutral-300 hover:bg-neutral-800 hover:text-white"
-                      onClick={() => setIsDropdownOpen(false)}
-                    >
-                      Profile Settings
-                    </Link>
-                    <Link
-                      href="/dashboard"
-                      className="block px-4 py-2 text-sm text-neutral-300 hover:bg-neutral-800 hover:text-white"
-                      onClick={() => setIsDropdownOpen(false)}
-                    >
-                      Dashboard
-                    </Link>
+                  
                     <hr className="my-1 border-neutral-800" />
                     <button
                       onClick={handleLogout}

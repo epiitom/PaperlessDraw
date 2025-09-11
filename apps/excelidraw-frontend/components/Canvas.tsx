@@ -73,7 +73,7 @@ function Topbar({selectedTool,setSelectedTool}:{
         padding: "2px",
         zIndex: 1000
     }}>
-        <div className="flex gap-1">
+        <div className="flex gap-1 ">
             <IconButton onClick={() => {
                 setSelectedTool("line")
             }} activated={selectedTool === "line"} icon={<Minus/>}/>

@@ -21,7 +21,8 @@ PaperlessDraw is a real-time collaborative drawing application that brings creat
 
 Our application follows a clean, scalable architecture designed for real-time collaboration:
 
-![System Architecture](![image](https://github.com/user-attachments/assets/6a8db34b-c2db-4302-bcd8-126597ba0e2a)
+![System Architecture](![image](<img width="1024" height="559" alt="image" src="https://github.com/user-attachments/assets/7ab3a079-b45a-45c5-ac6a-999a02980800" />
+
 )
 
 The system consists of:
